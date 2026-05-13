@@ -1,6 +1,16 @@
 # Recipe Lab
 
-A minimal Next.js recipe homepage built with TypeScript, Tailwind CSS, and the App Router.
+A minimal Next.js recipe app built with TypeScript, Tailwind CSS, and the App Router.
+
+Recipe Lab currently stores recipes in React local state only. There is no database yet, so any recipes you create or edit will reset when the app reloads.
+
+## Features
+
+- Browse a small mock recipe collection
+- Create a new recipe
+- View recipe details
+- Edit an existing recipe
+- Track title, ingredients, instructions, notes, tags, source URL, status, and rating
 
 ## Getting started
 
