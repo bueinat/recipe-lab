@@ -8,6 +8,7 @@ Recipe Lab stores recipes in React local state and saves them to `localStorage` 
 
 - Browse a small mock recipe collection
 - Add a new recipe from the homepage or navigation
+- Import a draft recipe from pasted text
 - Keep recipe changes after refresh with browser `localStorage`
 - View recipe details
 - Add cooking notes to a recipe log
