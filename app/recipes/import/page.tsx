@@ -18,7 +18,7 @@ export default function ImportRecipePage() {
 
     const draftRecipe: RecipeFormValues = {
       title: "Untitled imported recipe",
-      imageUrl: imageUrl.trim() || undefined,
+      imageUrl: imageUrl.trim(),
       servings: 1,
       ingredients: pastedText.trim(),
       instructions: "",
@@ -67,7 +67,7 @@ export default function ImportRecipePage() {
           <div className="grid gap-5 md:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-stone-700">
-                Source URL
+                Source URL (optional)
               </span>
               <input
                 type="url"
@@ -79,7 +79,9 @@ export default function ImportRecipePage() {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-semibold text-stone-700">Image URL</span>
+              <span className="text-sm font-semibold text-stone-700">
+                Image URL (optional)
+              </span>
               <input
                 type="url"
                 value={imageUrl}
