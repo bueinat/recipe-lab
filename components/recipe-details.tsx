@@ -17,6 +17,12 @@ function formatRating(rating: number) {
   return rating > 0 ? `${"★".repeat(rating)}${"☆".repeat(5 - rating)}` : "Not rated";
 }
 
+function formatServings(servings: number | undefined) {
+  const servingCount = servings ?? 1;
+
+  return `${servingCount} serving${servingCount === 1 ? "" : "s"}`;
+}
+
 export function RecipeDetails({ recipeId }: { recipeId: string }) {
   const { getRecipe } = useRecipes();
   const recipe = getRecipe(recipeId);
@@ -32,7 +38,7 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
             We could not find that recipe.
           </h1>
           <p className="mt-3 text-stone-600">
-            Because Recipe Lab uses local state only, recipes reset when the app reloads.
+            Recipe Lab saves recipes in this browser, with mock recipes as a fallback.
           </p>
           <Link
             href="/"
@@ -70,9 +76,10 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
               <h1 className="text-4xl font-bold tracking-tight text-stone-950">
                 {recipe.title}
               </h1>
-              <p className="mt-3 text-lg font-semibold text-amber-500">
-                {formatRating(recipe.rating)}
-              </p>
+              <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
+                <span className="text-amber-500">{formatRating(recipe.rating)}</span>
+                <span className="text-herb">{formatServings(recipe.servings)}</span>
+              </div>
             </div>
             <Link
               href={`/recipes/${recipe.id}/edit`}
@@ -82,6 +89,18 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
             </Link>
           </div>
         </div>
+
+        {recipe.imageUrl ? (
+          <img
+            src={recipe.imageUrl}
+            alt={recipe.title}
+            className="h-64 w-full rounded-3xl object-cover shadow-sm ring-1 ring-stone-200"
+          />
+        ) : (
+          <div className="flex h-64 w-full items-center justify-center rounded-3xl bg-stone-100 text-sm font-semibold text-stone-400 ring-1 ring-stone-200">
+            No image yet
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <DetailBlock title="Ingredients">{recipe.ingredients}</DetailBlock>

@@ -3,6 +3,8 @@ export type RecipeStatus = "Idea" | "Testing" | "Favorite";
 export type Recipe = {
   id: string;
   title: string;
+  imageUrl?: string;
+  servings: number;
   ingredients: string;
   instructions: string;
   notes: string;

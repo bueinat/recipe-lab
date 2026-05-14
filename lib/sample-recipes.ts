@@ -4,6 +4,9 @@ export const sampleRecipes: Recipe[] = [
   {
     id: "sunny-lemon-pasta",
     title: "Sunny Lemon Pasta",
+    imageUrl:
+      "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80",
+    servings: 4,
     ingredients:
       "Spaghetti\nLemon zest and juice\nParmesan\nFresh basil\nOlive oil\nBlack pepper",
     instructions:
@@ -17,6 +20,7 @@ export const sampleRecipes: Recipe[] = [
   {
     id: "cozy-tomato-soup",
     title: "Cozy Tomato Soup",
+    servings: 6,
     ingredients:
       "Canned tomatoes\nYellow onion\nGarlic\nVegetable broth\nCream\nButter",
     instructions:
@@ -30,6 +34,9 @@ export const sampleRecipes: Recipe[] = [
   {
     id: "herby-sheet-pan-chicken",
     title: "Herby Sheet-Pan Chicken",
+    imageUrl:
+      "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80",
+    servings: 4,
     ingredients:
       "Chicken thighs\nBaby potatoes\nCarrots\nGarlic\nRosemary\nThyme\nOlive oil",
     instructions:

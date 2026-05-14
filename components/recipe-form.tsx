@@ -5,6 +5,8 @@ import { recipeStatuses, type RecipeFormValues } from "@/lib/recipe-types";
 
 const emptyRecipeForm: RecipeFormValues = {
   title: "",
+  imageUrl: "",
+  servings: 1,
   ingredients: "",
   instructions: "",
   notes: "",
@@ -37,6 +39,8 @@ export function RecipeForm({
   onSubmit,
 }: RecipeFormProps) {
   const [title, setTitle] = useState(initialValues.title);
+  const [imageUrl, setImageUrl] = useState(initialValues.imageUrl ?? "");
+  const [servings, setServings] = useState(initialValues.servings ?? 1);
   const [ingredients, setIngredients] = useState(initialValues.ingredients);
   const [instructions, setInstructions] = useState(initialValues.instructions);
   const [notes, setNotes] = useState(initialValues.notes);
@@ -50,6 +54,8 @@ export function RecipeForm({
 
     onSubmit({
       title: title.trim(),
+      imageUrl: imageUrl.trim() || undefined,
+      servings,
       ingredients: ingredients.trim(),
       instructions: instructions.trim(),
       notes: notes.trim(),
@@ -73,7 +79,7 @@ export function RecipeForm({
         />
       </label>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-3">
         <label className="grid gap-2">
           <span className="text-sm font-semibold text-stone-700">Status</span>
           <select
@@ -87,6 +93,18 @@ export function RecipeForm({
               </option>
             ))}
           </select>
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-semibold text-stone-700">Servings</span>
+          <input
+            required
+            type="number"
+            min={1}
+            value={servings}
+            onChange={(event) => setServings(Number(event.target.value))}
+            className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+          />
         </label>
 
         <label className="grid gap-2">
@@ -142,6 +160,17 @@ export function RecipeForm({
       </label>
 
       <div className="grid gap-5 md:grid-cols-2">
+        <label className="grid gap-2">
+          <span className="text-sm font-semibold text-stone-700">Image URL</span>
+          <input
+            type="url"
+            value={imageUrl}
+            onChange={(event) => setImageUrl(event.target.value)}
+            className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+            placeholder="https://example.com/photo.jpg"
+          />
+        </label>
+
         <label className="grid gap-2">
           <span className="text-sm font-semibold text-stone-700">Tags</span>
           <input

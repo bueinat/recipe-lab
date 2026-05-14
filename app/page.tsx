@@ -7,6 +7,12 @@ function formatRating(rating: number) {
   return rating > 0 ? "★".repeat(rating) : "Not rated";
 }
 
+function formatServings(servings: number | undefined) {
+  const servingCount = servings ?? 1;
+
+  return `${servingCount} serving${servingCount === 1 ? "" : "s"}`;
+}
+
 export default function Home() {
   const { recipes } = useRecipes();
 
@@ -52,7 +58,7 @@ export default function Home() {
                 Recipe collection
               </h2>
               <p className="mt-2 text-sm text-stone-500">
-                Local state only for now. Refreshing the page resets changes.
+                Saved locally in your browser for quick testing.
               </p>
             </div>
             <Link
@@ -67,33 +73,50 @@ export default function Home() {
             {recipes.map((recipe) => (
               <article
                 key={recipe.id}
-                className="flex h-full flex-col rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200 transition hover:-translate-y-1 hover:shadow-md"
+                className="flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-stone-200 transition hover:-translate-y-1 hover:shadow-md"
               >
-                <div className="mb-4 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-tomato">
-                    {recipe.status}
-                  </span>
-                  {recipe.tags.slice(0, 2).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600"
-                    >
-                      {tag}
+                {recipe.imageUrl ? (
+                  <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="h-40 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center bg-stone-100 text-sm font-semibold text-stone-400">
+                    No image yet
+                  </div>
+                )}
+
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-tomato">
+                      {recipe.status}
                     </span>
-                  ))}
-                </div>
-                <h3 className="text-xl font-bold text-stone-950">{recipe.title}</h3>
-                <p className="mt-3 line-clamp-3 flex-1 whitespace-pre-line text-sm leading-6 text-stone-600">
-                  {recipe.ingredients}
-                </p>
-                <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4 text-sm font-medium text-stone-500">
-                  <span>{formatRating(recipe.rating)}</span>
-                  <Link
-                    href={`/recipes/${recipe.id}`}
-                    className="font-bold text-herb hover:text-green-800"
-                  >
-                    View details
-                  </Link>
+                    {recipe.tags.slice(0, 2).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <h3 className="text-xl font-bold text-stone-950">{recipe.title}</h3>
+                  <p className="mt-2 text-sm font-semibold text-herb">
+                    {formatServings(recipe.servings)}
+                  </p>
+                  <p className="mt-3 line-clamp-3 flex-1 whitespace-pre-line text-sm leading-6 text-stone-600">
+                    {recipe.ingredients}
+                  </p>
+                  <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4 text-sm font-medium text-stone-500">
+                    <span>{formatRating(recipe.rating)}</span>
+                    <Link
+                      href={`/recipes/${recipe.id}`}
+                      className="font-bold text-herb hover:text-green-800"
+                    >
+                      View details
+                    </Link>
+                  </div>
                 </div>
               </article>
             ))}
