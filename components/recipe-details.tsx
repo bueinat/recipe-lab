@@ -32,6 +32,7 @@ function formatLogDate(date: string) {
 export function RecipeDetails({ recipeId }: { recipeId: string }) {
   const { addCookingLog, addRecipeVersion, getRecipe } = useRecipes();
   const [newCookingNote, setNewCookingNote] = useState("");
+  const [desiredServings, setDesiredServings] = useState("1");
   const [versionName, setVersionName] = useState("");
   const [versionIngredients, setVersionIngredients] = useState("");
   const [versionInstructions, setVersionInstructions] = useState("");
@@ -42,16 +43,24 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
 
   const cookingLogs = recipe?.cookingLogs ?? [];
   const versions = recipe?.versions ?? [];
+  const originalServings = recipe?.servings && recipe.servings > 0 ? recipe.servings : 1;
+  const desiredServingCount = Number(desiredServings);
+  const hasValidDesiredServings =
+    Number.isFinite(desiredServingCount) && desiredServingCount > 0;
+  const servingMultiplier = hasValidDesiredServings
+    ? desiredServingCount / originalServings
+    : null;
 
   useEffect(() => {
     if (!recipe) {
       return;
     }
 
+    setDesiredServings(String(recipe.servings || 1));
     setVersionIngredients(recipe.ingredients);
     setVersionInstructions(recipe.instructions);
     setVersionNotes(recipe.notes);
-  }, [recipe?.id, recipe?.ingredients, recipe?.instructions, recipe?.notes]);
+  }, [recipe?.id, recipe?.ingredients, recipe?.instructions, recipe?.notes, recipe?.servings]);
 
   function resetVersionForm() {
     if (!recipe) {
@@ -177,6 +186,44 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
           <DetailBlock title="Ingredients">{recipe.ingredients}</DetailBlock>
           <DetailBlock title="Instructions">{recipe.instructions}</DetailBlock>
         </div>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
+          <h2 className="text-lg font-bold text-stone-950">Scale recipe</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] sm:items-end">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-stone-700">
+                Desired servings
+              </span>
+              <input
+                type="number"
+                min={1}
+                value={desiredServings}
+                onChange={(event) => setDesiredServings(event.target.value)}
+                className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+              />
+            </label>
+            <div className="rounded-2xl bg-stone-50 p-4">
+              {servingMultiplier ? (
+                <>
+                  <p className="font-semibold text-stone-900">
+                    Scaling from {formatServings(originalServings)} to {formatServings(desiredServingCount)}
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-herb">
+                    Multiplier: {servingMultiplier.toFixed(2).replace(/\.00$/, "")}x
+                  </p>
+                </>
+              ) : (
+                <p className="font-semibold text-tomato">
+                  Enter a serving amount greater than 0.
+                </p>
+              )}
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-stone-600">
+            For now, multiply ingredient amounts manually using this multiplier.
+            Recipe Lab does not rewrite ingredients automatically yet.
+          </p>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <DetailBlock title="Notes">
