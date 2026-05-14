@@ -16,6 +16,13 @@ export const sampleRecipes: Recipe[] = [
     sourceUrl: "https://example.com/lemon-pasta",
     status: "Favorite",
     rating: 5,
+    cookingLogs: [
+      {
+        id: "sunny-lemon-pasta-log-1",
+        date: "2026-05-01",
+        text: "Used extra lemon zest and saved a little pasta water for the sauce.",
+      },
+    ],
   },
   {
     id: "cozy-tomato-soup",
@@ -30,6 +37,7 @@ export const sampleRecipes: Recipe[] = [
     sourceUrl: "",
     status: "Testing",
     rating: 4,
+    cookingLogs: [],
   },
   {
     id: "herby-sheet-pan-chicken",
@@ -46,5 +54,6 @@ export const sampleRecipes: Recipe[] = [
     sourceUrl: "https://example.com/sheet-pan-chicken",
     status: "Idea",
     rating: 3,
+    cookingLogs: [],
   },
 ];

@@ -10,8 +10,9 @@ Recipe Lab stores recipes in React local state and saves them to `localStorage` 
 - Add a new recipe from the homepage or navigation
 - Keep recipe changes after refresh with browser `localStorage`
 - View recipe details
+- Add cooking notes to a recipe log
 - Edit an existing recipe
-- Track title, image URL, servings, ingredients, instructions, notes, tags, source URL, status, and rating
+- Track title, image URL, servings, ingredients, instructions, notes, cooking notes, tags, source URL, status, and rating
 
 ## Getting started
 

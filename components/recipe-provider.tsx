@@ -15,6 +15,7 @@ type RecipeContextValue = {
   recipes: Recipe[];
   addRecipe: (recipe: RecipeFormValues) => Recipe;
   updateRecipe: (id: string, recipe: RecipeFormValues) => void;
+  addCookingLog: (recipeId: string, text: string) => void;
   getRecipe: (id: string) => Recipe | undefined;
 };
 
@@ -30,6 +31,10 @@ function makeRecipeId(title: string) {
     .replace(/(^-|-$)/g, "");
 
   return `${slug || "recipe"}-${Date.now()}`;
+}
+
+function makeCookingLogId() {
+  return `log-${Date.now()}`;
 }
 
 function readStoredRecipes() {
@@ -73,6 +78,7 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
     function addRecipe(recipe: RecipeFormValues) {
       const newRecipe = {
         ...recipe,
+        cookingLogs: recipe.cookingLogs ?? [],
         id: makeRecipeId(recipe.title),
       };
 
@@ -83,7 +89,39 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
     function updateRecipe(id: string, recipe: RecipeFormValues) {
       setRecipes((currentRecipes) =>
         currentRecipes.map((currentRecipe) =>
-          currentRecipe.id === id ? { ...recipe, id } : currentRecipe,
+          currentRecipe.id === id
+            ? {
+                ...recipe,
+                cookingLogs: currentRecipe.cookingLogs ?? [],
+                id,
+              }
+            : currentRecipe,
+        ),
+      );
+    }
+
+    function addCookingLog(recipeId: string, text: string) {
+      const trimmedText = text.trim();
+
+      if (!trimmedText) {
+        return;
+      }
+
+      setRecipes((currentRecipes) =>
+        currentRecipes.map((recipe) =>
+          recipe.id === recipeId
+            ? {
+                ...recipe,
+                cookingLogs: [
+                  {
+                    id: makeCookingLogId(),
+                    date: new Date().toISOString(),
+                    text: trimmedText,
+                  },
+                  ...(recipe.cookingLogs ?? []),
+                ],
+              }
+            : recipe,
         ),
       );
     }
@@ -92,7 +130,7 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
       return recipes.find((recipe) => recipe.id === id);
     }
 
-    return { recipes, addRecipe, updateRecipe, getRecipe };
+    return { recipes, addRecipe, updateRecipe, addCookingLog, getRecipe };
   }, [recipes]);
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useRecipes } from "./recipe-provider";
 
 function DetailBlock({ title, children }: { title: string; children: ReactNode }) {
@@ -23,9 +23,24 @@ function formatServings(servings: number | undefined) {
   return `${servingCount} serving${servingCount === 1 ? "" : "s"}`;
 }
 
+function formatLogDate(date: string) {
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+  }).format(new Date(date));
+}
+
 export function RecipeDetails({ recipeId }: { recipeId: string }) {
-  const { getRecipe } = useRecipes();
+  const { addCookingLog, getRecipe } = useRecipes();
+  const [newCookingNote, setNewCookingNote] = useState("");
   const recipe = getRecipe(recipeId);
+
+  const cookingLogs = recipe?.cookingLogs ?? [];
+
+  function handleAddCookingNote(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    addCookingLog(recipeId, newCookingNote);
+    setNewCookingNote("");
+  }
 
   if (!recipe) {
     return (
@@ -111,6 +126,42 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
           <DetailBlock title="Notes">
             {recipe.notes || "No notes yet. Add reminders after your next test cook."}
           </DetailBlock>
+          <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
+            <h2 className="text-lg font-bold text-stone-950">Cooking Notes</h2>
+            <form onSubmit={handleAddCookingNote} className="mt-4 grid gap-3">
+              <textarea
+                value={newCookingNote}
+                onChange={(event) => setNewCookingNote(event.target.value)}
+                rows={4}
+                className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+                placeholder="What changed when you cooked this recipe?"
+              />
+              <button
+                type="submit"
+                className="rounded-2xl bg-herb px-5 py-3 font-bold text-white shadow-sm transition hover:bg-green-800"
+              >
+                Add cooking note
+              </button>
+            </form>
+            <div className="mt-6 grid gap-4">
+              {cookingLogs.length > 0 ? (
+                cookingLogs.map((log) => (
+                  <article key={log.id} className="rounded-2xl bg-stone-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
+                      {formatLogDate(log.date)}
+                    </p>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-700">
+                      {log.text}
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <p className="text-sm text-stone-500">
+                  No cooking notes yet. Add one after your next test cook.
+                </p>
+              )}
+            </div>
+          </section>
           <DetailBlock title="Source">
             {recipe.sourceUrl ? (
               <a
