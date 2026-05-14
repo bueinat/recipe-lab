@@ -23,6 +23,18 @@ export const sampleRecipes: Recipe[] = [
         text: "Used extra lemon zest and saved a little pasta water for the sauce.",
       },
     ],
+    versions: [
+      {
+        id: "sunny-lemon-pasta-version-1",
+        name: "Extra lemon test",
+        createdAt: "2026-05-02T12:00:00.000Z",
+        ingredients:
+          "Spaghetti\nExtra lemon zest and juice\nParmesan\nFresh basil\nOlive oil\nBlack pepper",
+        instructions:
+          "Cook pasta until al dente. Toss with olive oil, extra lemon, and parmesan. Finish with basil and black pepper.",
+        notes: "Brighter than the original. Best with plenty of pasta water.",
+      },
+    ],
   },
   {
     id: "cozy-tomato-soup",
@@ -38,6 +50,7 @@ export const sampleRecipes: Recipe[] = [
     status: "Testing",
     rating: 4,
     cookingLogs: [],
+    versions: [],
   },
   {
     id: "herby-sheet-pan-chicken",
@@ -55,5 +68,6 @@ export const sampleRecipes: Recipe[] = [
     status: "Idea",
     rating: 3,
     cookingLogs: [],
+    versions: [],
   },
 ];

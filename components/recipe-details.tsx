@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useRecipes } from "./recipe-provider";
 
 function DetailBlock({ title, children }: { title: string; children: ReactNode }) {
@@ -30,16 +30,58 @@ function formatLogDate(date: string) {
 }
 
 export function RecipeDetails({ recipeId }: { recipeId: string }) {
-  const { addCookingLog, getRecipe } = useRecipes();
+  const { addCookingLog, addRecipeVersion, getRecipe } = useRecipes();
   const [newCookingNote, setNewCookingNote] = useState("");
+  const [versionName, setVersionName] = useState("");
+  const [versionIngredients, setVersionIngredients] = useState("");
+  const [versionInstructions, setVersionInstructions] = useState("");
+  const [versionNotes, setVersionNotes] = useState("");
   const recipe = getRecipe(recipeId);
 
   const cookingLogs = recipe?.cookingLogs ?? [];
+  const versions = recipe?.versions ?? [];
+
+  useEffect(() => {
+    if (!recipe) {
+      return;
+    }
+
+    setVersionIngredients(recipe.ingredients);
+    setVersionInstructions(recipe.instructions);
+    setVersionNotes(recipe.notes);
+  }, [recipe?.id, recipe?.ingredients, recipe?.instructions, recipe?.notes]);
+
+  function resetVersionForm() {
+    if (!recipe) {
+      return;
+    }
+
+    setVersionName("");
+    setVersionIngredients(recipe.ingredients);
+    setVersionInstructions(recipe.instructions);
+    setVersionNotes(recipe.notes);
+  }
 
   function handleAddCookingNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     addCookingLog(recipeId, newCookingNote);
     setNewCookingNote("");
+  }
+
+  function handleAddVersion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!versionName.trim()) {
+      return;
+    }
+
+    addRecipeVersion(recipeId, {
+      name: versionName.trim(),
+      ingredients: versionIngredients.trim(),
+      instructions: versionInstructions.trim(),
+      notes: versionNotes.trim(),
+    });
+    resetVersionForm();
   }
 
   if (!recipe) {
@@ -121,6 +163,105 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
           <DetailBlock title="Ingredients">{recipe.ingredients}</DetailBlock>
           <DetailBlock title="Instructions">{recipe.instructions}</DetailBlock>
         </div>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
+          <h2 className="text-lg font-bold text-stone-950">Versions / Adaptations</h2>
+          <form onSubmit={handleAddVersion} className="mt-4 grid gap-4">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-stone-700">
+                Version name
+              </span>
+              <input
+                required
+                value={versionName}
+                onChange={(event) => setVersionName(event.target.value)}
+                className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+                placeholder="Weeknight shortcut version"
+              />
+            </label>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-stone-700">
+                  Ingredients
+                </span>
+                <textarea
+                  value={versionIngredients}
+                  onChange={(event) => setVersionIngredients(event.target.value)}
+                  rows={6}
+                  className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+                />
+              </label>
+
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-stone-700">
+                  Instructions
+                </span>
+                <textarea
+                  value={versionInstructions}
+                  onChange={(event) => setVersionInstructions(event.target.value)}
+                  rows={6}
+                  className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+                />
+              </label>
+            </div>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-stone-700">Notes</span>
+              <textarea
+                value={versionNotes}
+                onChange={(event) => setVersionNotes(event.target.value)}
+                rows={4}
+                className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+              />
+            </label>
+
+            <button
+              type="submit"
+              className="rounded-2xl bg-herb px-5 py-3 font-bold text-white shadow-sm transition hover:bg-green-800"
+            >
+              Save version
+            </button>
+          </form>
+
+          <div className="mt-6 grid gap-4">
+            {versions.length > 0 ? (
+              versions.map((version) => (
+                <article key={version.id} className="rounded-2xl bg-stone-50 p-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="font-bold text-stone-950">{version.name}</h3>
+                    <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
+                      {formatLogDate(version.createdAt)}
+                    </p>
+                  </div>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <div>
+                      <p className="text-sm font-bold text-stone-700">Ingredients</p>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600">
+                        {version.ingredients || "No ingredients saved for this version."}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-stone-700">Instructions</p>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600">
+                        {version.instructions || "No instructions saved for this version."}
+                      </p>
+                    </div>
+                  </div>
+                  {version.notes ? (
+                    <p className="mt-4 whitespace-pre-line text-sm leading-6 text-stone-600">
+                      {version.notes}
+                    </p>
+                  ) : null}
+                </article>
+              ))
+            ) : (
+              <p className="text-sm text-stone-500">
+                No versions yet. Save an adaptation when you try a variation.
+              </p>
+            )}
+          </div>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <DetailBlock title="Notes">

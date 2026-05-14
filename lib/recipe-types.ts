@@ -6,6 +6,17 @@ export type CookingLog = {
   text: string;
 };
 
+export type RecipeVersion = {
+  id: string;
+  name: string;
+  createdAt: string;
+  ingredients: string;
+  instructions: string;
+  notes: string;
+};
+
+export type RecipeVersionInput = Omit<RecipeVersion, "id" | "createdAt">;
+
 export type Recipe = {
   id: string;
   title: string;
@@ -19,6 +30,7 @@ export type Recipe = {
   status: RecipeStatus;
   rating: number;
   cookingLogs?: CookingLog[];
+  versions?: RecipeVersion[];
 };
 
 export type RecipeFormValues = Omit<Recipe, "id">;

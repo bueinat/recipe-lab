@@ -9,13 +9,18 @@ import {
   type ReactNode,
 } from "react";
 import { sampleRecipes } from "@/lib/sample-recipes";
-import type { Recipe, RecipeFormValues } from "@/lib/recipe-types";
+import type {
+  Recipe,
+  RecipeFormValues,
+  RecipeVersionInput,
+} from "@/lib/recipe-types";
 
 type RecipeContextValue = {
   recipes: Recipe[];
   addRecipe: (recipe: RecipeFormValues) => Recipe;
   updateRecipe: (id: string, recipe: RecipeFormValues) => void;
   addCookingLog: (recipeId: string, text: string) => void;
+  addRecipeVersion: (recipeId: string, version: RecipeVersionInput) => void;
   getRecipe: (id: string) => Recipe | undefined;
 };
 
@@ -35,6 +40,10 @@ function makeRecipeId(title: string) {
 
 function makeCookingLogId() {
   return `log-${Date.now()}`;
+}
+
+function makeRecipeVersionId() {
+  return `version-${Date.now()}`;
 }
 
 function readStoredRecipes() {
@@ -79,6 +88,7 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
       const newRecipe = {
         ...recipe,
         cookingLogs: recipe.cookingLogs ?? [],
+        versions: recipe.versions ?? [],
         id: makeRecipeId(recipe.title),
       };
 
@@ -93,6 +103,7 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
             ? {
                 ...recipe,
                 cookingLogs: currentRecipe.cookingLogs ?? [],
+                versions: currentRecipe.versions ?? [],
                 id,
               }
             : currentRecipe,
@@ -126,11 +137,38 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
       );
     }
 
+    function addRecipeVersion(recipeId: string, version: RecipeVersionInput) {
+      setRecipes((currentRecipes) =>
+        currentRecipes.map((recipe) =>
+          recipe.id === recipeId
+            ? {
+                ...recipe,
+                versions: [
+                  {
+                    ...version,
+                    id: makeRecipeVersionId(),
+                    createdAt: new Date().toISOString(),
+                  },
+                  ...(recipe.versions ?? []),
+                ],
+              }
+            : recipe,
+        ),
+      );
+    }
+
     function getRecipe(id: string) {
       return recipes.find((recipe) => recipe.id === id);
     }
 
-    return { recipes, addRecipe, updateRecipe, addCookingLog, getRecipe };
+    return {
+      recipes,
+      addRecipe,
+      updateRecipe,
+      addCookingLog,
+      addRecipeVersion,
+      getRecipe,
+    };
   }, [recipes]);
 
   return (
