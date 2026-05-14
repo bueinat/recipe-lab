@@ -7,7 +7,7 @@ Recipe Lab currently stores recipes in React local state only. There is no datab
 ## Features
 
 - Browse a small mock recipe collection
-- Create a new recipe
+- Add a new recipe from the homepage or navigation
 - View recipe details
 - Edit an existing recipe
 - Track title, ingredients, instructions, notes, tags, source URL, status, and rating

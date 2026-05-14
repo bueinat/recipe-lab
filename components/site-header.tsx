@@ -23,7 +23,7 @@ export function SiteHeader() {
             href="/recipes/new"
             className="rounded-full bg-tomato px-4 py-2 text-white shadow-sm transition hover:bg-red-600"
           >
-            New Recipe
+            Add Recipe
           </Link>
         </div>
       </nav>
