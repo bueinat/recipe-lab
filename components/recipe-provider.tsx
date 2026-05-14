@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -17,6 +18,8 @@ type RecipeContextValue = {
   getRecipe: (id: string) => Recipe | undefined;
 };
 
+const STORAGE_KEY = "recipe-lab-recipes";
+
 const RecipeContext = createContext<RecipeContextValue | undefined>(undefined);
 
 function makeRecipeId(title: string) {
@@ -29,8 +32,42 @@ function makeRecipeId(title: string) {
   return `${slug || "recipe"}-${Date.now()}`;
 }
 
+function readStoredRecipes() {
+  const storedRecipes = window.localStorage.getItem(STORAGE_KEY);
+
+  if (!storedRecipes) {
+    return sampleRecipes;
+  }
+
+  try {
+    const parsedRecipes = JSON.parse(storedRecipes);
+
+    if (Array.isArray(parsedRecipes) && parsedRecipes.length > 0) {
+      return parsedRecipes as Recipe[];
+    }
+  } catch {
+    // Fall back to mock recipes if saved data cannot be read.
+  }
+
+  return sampleRecipes;
+}
+
 export function RecipeProvider({ children }: { children: ReactNode }) {
   const [recipes, setRecipes] = useState<Recipe[]>(sampleRecipes);
+  const [hasLoadedStoredRecipes, setHasLoadedStoredRecipes] = useState(false);
+
+  useEffect(() => {
+    setRecipes(readStoredRecipes());
+    setHasLoadedStoredRecipes(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedStoredRecipes) {
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  }, [hasLoadedStoredRecipes, recipes]);
 
   const value = useMemo<RecipeContextValue>(() => {
     function addRecipe(recipe: RecipeFormValues) {

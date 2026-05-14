@@ -2,12 +2,13 @@
 
 A minimal Next.js recipe app built with TypeScript, Tailwind CSS, and the App Router.
 
-Recipe Lab currently stores recipes in React local state only. There is no database yet, so any recipes you create or edit will reset when the app reloads.
+Recipe Lab stores recipes in React local state and saves them to `localStorage` in the browser. There is no database yet, so recipes stay on the same device and browser.
 
 ## Features
 
 - Browse a small mock recipe collection
 - Add a new recipe from the homepage or navigation
+- Keep recipe changes after refresh with browser `localStorage`
 - View recipe details
 - Edit an existing recipe
 - Track title, ingredients, instructions, notes, tags, source URL, status, and rating
