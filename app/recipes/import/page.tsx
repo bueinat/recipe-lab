@@ -7,6 +7,43 @@ import { RecipeForm } from "@/components/recipe-form";
 import { useRecipes } from "@/components/recipe-provider";
 import type { RecipeFormValues } from "@/lib/recipe-types";
 
+const sectionHeadings = {
+  ingredients: ["ingredients", "ingredient list", "מצרכים", "רכיבים"],
+  instructions: [
+    "instructions",
+    "directions",
+    "method",
+    "preparation",
+    "הוראות",
+    "אופן הכנה",
+    "הכנה",
+  ],
+  notes: ["notes", "tips", "comments", "הערות", "טיפים"],
+  source: ["source", "link", "url", "מקור", "קישור"],
+} as const;
+
+type ImportSection = keyof typeof sectionHeadings;
+
+function normalizeHeading(line: string) {
+  return line.trim().toLowerCase().replace(/[:：-]+$/, "").trim();
+}
+
+function getSectionForLine(line: string): ImportSection | null {
+  const normalizedLine = normalizeHeading(line);
+
+  for (const [section, headings] of Object.entries(sectionHeadings)) {
+    if ((headings as readonly string[]).includes(normalizedLine)) {
+      return section as ImportSection;
+    }
+  }
+
+  return null;
+}
+
+function findFirstUrl(text: string) {
+  return text.match(/https?:\/\/\S+/)?.[0] ?? "";
+}
+
 function mockExtractRecipeFromText({
   imageUrl,
   pastedText,
@@ -16,20 +53,53 @@ function mockExtractRecipeFromText({
   pastedText: string;
   sourceUrl: string;
 }): RecipeFormValues {
-  const firstLine = pastedText
-    .split("\n")
-    .map((line) => line.trim())
-    .find(Boolean);
+  const lines = pastedText.split("\n").map((line) => line.trim());
+  const firstNonEmptyLine = lines.find(Boolean);
+  const titleLine =
+    firstNonEmptyLine && !getSectionForLine(firstNonEmptyLine)
+      ? firstNonEmptyLine
+      : undefined;
+  const sections: Record<ImportSection, string[]> = {
+    ingredients: [],
+    instructions: [],
+    notes: [],
+    source: [],
+  };
+  let currentSection: ImportSection | null = null;
+  let foundSectionHeading = false;
+
+  lines.forEach((line) => {
+    if (!line) {
+      return;
+    }
+
+    const nextSection = getSectionForLine(line);
+
+    if (nextSection) {
+      currentSection = nextSection;
+      foundSectionHeading = true;
+      return;
+    }
+
+    if (currentSection) {
+      sections[currentSection].push(line);
+    }
+  });
+
+  const pastedUrl = findFirstUrl(pastedText);
+  const sourceSectionUrl = findFirstUrl(sections.source.join("\n"));
 
   return {
-    title: firstLine || "Untitled imported recipe",
+    title: titleLine || "Untitled imported recipe",
     imageUrl: imageUrl.trim(),
     servings: 1,
-    ingredients: pastedText.trim(),
-    instructions: "",
-    notes: "Imported from pasted text",
+    ingredients: foundSectionHeading
+      ? sections.ingredients.join("\n")
+      : pastedText.trim(),
+    instructions: foundSectionHeading ? sections.instructions.join("\n") : "",
+    notes: sections.notes.join("\n") || "Imported from pasted text",
     tags: ["imported"],
-    sourceUrl: sourceUrl.trim(),
+    sourceUrl: sourceUrl.trim() || sourceSectionUrl || pastedUrl,
     status: "Idea",
     rating: 0,
     cookingLogs: [],
@@ -135,9 +205,8 @@ export default function ImportRecipePage() {
             <div className="rounded-2xl bg-orange-50 p-4 text-sm text-stone-700">
               <p className="font-bold text-stone-950">Review extracted draft</p>
               <p className="mt-2">
-                The mock extractor used the first non-empty line as the title and
-                placed the full pasted text in ingredients. Edit anything below
-                before saving.
+                The mock extractor looked for common recipe headings and filled
+                the draft below. Edit anything before saving.
               </p>
             </div>
             <RecipeForm
