@@ -95,8 +95,8 @@ export default function Home() {
                 one clean local workspace.
               </p>
             </div>
-            <div className="rounded-2xl bg-herb p-6 text-white">
-              <p className="text-sm font-medium uppercase tracking-wide text-green-100">
+            <div className="rounded-2xl bg-green-50 p-6 text-stone-900 ring-1 ring-green-100">
+              <p className="text-sm font-medium uppercase tracking-wide text-herb">
                 Start experimenting
               </p>
               <p className="mt-3 text-2xl font-semibold">
@@ -104,7 +104,7 @@ export default function Home() {
               </p>
               <Link
                 href="/recipes/new"
-                className="mt-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-bold text-herb transition hover:bg-green-50"
+                className="mt-6 inline-flex rounded-full bg-herb px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-800"
               >
                 Add Recipe
               </Link>
@@ -125,7 +125,7 @@ export default function Home() {
             </div>
             <Link
               href="/recipes/new"
-              className="inline-flex items-center justify-center rounded-full bg-tomato px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-red-600"
+              className="inline-flex items-center justify-center rounded-full bg-herb px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-800"
             >
               Add Recipe
             </Link>
@@ -205,17 +205,19 @@ export default function Home() {
                   key={recipe.id}
                   className="flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-stone-200 transition hover:-translate-y-1 hover:shadow-md"
                 >
-                  {recipe.imageUrl ? (
-                    <img
-                      src={recipe.imageUrl}
-                      alt={recipe.title}
-                      className="h-40 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-40 w-full items-center justify-center bg-stone-100 text-sm font-semibold text-stone-400">
-                      No image yet
-                    </div>
-                  )}
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-stone-100">
+                    {recipe.imageUrl ? (
+                      <img
+                        src={recipe.imageUrl}
+                        alt={recipe.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-stone-400">
+                        No image yet
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex flex-1 flex-col p-6">
                     <div className="mb-4 flex flex-wrap gap-2">

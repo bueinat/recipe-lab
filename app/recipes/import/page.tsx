@@ -98,7 +98,7 @@ function mockExtractRecipeFromText({
       ? sections.ingredients.join("\n")
       : pastedText.trim(),
     instructions: foundSectionHeading ? sections.instructions.join("\n") : "",
-    notes: sections.notes.join("\n") || "Imported from pasted text",
+    notes: sections.notes.join("\n"),
     tags: ["imported"],
     sourceUrl: sourceUrl.trim() || sourceSectionUrl || pastedUrl,
     status: "Idea",

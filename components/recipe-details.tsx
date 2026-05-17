@@ -184,17 +184,19 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
           </div>
         </div>
 
-        {recipe.imageUrl ? (
-          <img
-            src={recipe.imageUrl}
-            alt={recipe.title}
-            className="h-64 w-full rounded-3xl object-cover shadow-sm ring-1 ring-stone-200"
-          />
-        ) : (
-          <div className="flex h-64 w-full items-center justify-center rounded-3xl bg-stone-100 text-sm font-semibold text-stone-400 ring-1 ring-stone-200">
-            No image yet
-          </div>
-        )}
+        <div className="aspect-[16/9] w-full overflow-hidden rounded-3xl bg-stone-100 shadow-sm ring-1 ring-stone-200">
+          {recipe.imageUrl ? (
+            <img
+              src={recipe.imageUrl}
+              alt={recipe.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-stone-400">
+              No image yet
+            </div>
+          )}
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <DetailBlock title="Ingredients" dir={getTextDirection(recipe.ingredients)}>

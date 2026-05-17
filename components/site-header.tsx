@@ -21,13 +21,13 @@ export function SiteHeader() {
           </Link>
           <Link
             href="/recipes/import"
-            className="rounded-full px-4 py-2 text-stone-600 transition hover:bg-orange-50 hover:text-herb"
+            className="rounded-full bg-herb px-4 py-2 text-white shadow-sm transition hover:bg-green-800"
           >
             Import
           </Link>
           <Link
             href="/recipes/new"
-            className="rounded-full bg-tomato px-4 py-2 text-white shadow-sm transition hover:bg-red-600"
+            className="rounded-full bg-herb px-4 py-2 text-white shadow-sm transition hover:bg-green-800"
           >
             Add Recipe
           </Link>
