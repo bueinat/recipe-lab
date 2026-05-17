@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { recipeStatuses, type RecipeFormValues } from "@/lib/recipe-types";
+import { getTextDirection } from "@/lib/text-direction";
 
 const emptyRecipeForm: RecipeFormValues = {
   title: "",
@@ -74,6 +75,7 @@ export function RecipeForm({
           <span className="text-sm font-semibold text-stone-700">Title</span>
           <input
             required
+            dir={getTextDirection(title)}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
@@ -171,6 +173,7 @@ export function RecipeForm({
           <span className="text-sm font-semibold text-stone-700">Ingredients</span>
           <textarea
             required
+            dir={getTextDirection(ingredients)}
             value={ingredients}
             onChange={(event) => setIngredients(event.target.value)}
             rows={6}
@@ -183,6 +186,7 @@ export function RecipeForm({
           <span className="text-sm font-semibold text-stone-700">Instructions</span>
           <textarea
             required
+            dir={getTextDirection(instructions)}
             value={instructions}
             onChange={(event) => setInstructions(event.target.value)}
             rows={6}
@@ -194,6 +198,7 @@ export function RecipeForm({
         <label className="grid gap-2">
           <span className="text-sm font-semibold text-stone-700">Notes</span>
           <textarea
+            dir={getTextDirection(notes)}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={4}

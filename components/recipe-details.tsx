@@ -2,13 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { getTextDirection, type TextDirection } from "@/lib/text-direction";
 import { useRecipes } from "./recipe-provider";
 
-function DetailBlock({ title, children }: { title: string; children: ReactNode }) {
+function DetailBlock({
+  title,
+  children,
+  dir = "ltr",
+}: {
+  title: string;
+  children: ReactNode;
+  dir?: TextDirection;
+}) {
   return (
     <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
       <h2 className="text-lg font-bold text-stone-950">{title}</h2>
-      <div className="mt-4 whitespace-pre-line leading-7 text-stone-700">{children}</div>
+      <div dir={dir} className="mt-4 whitespace-pre-line leading-7 text-stone-700">
+        {children}
+      </div>
     </section>
   );
 }
@@ -153,7 +164,10 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                   </span>
                 ))}
               </div>
-              <h1 className="text-4xl font-bold tracking-tight text-stone-950">
+              <h1
+                dir={getTextDirection(recipe.title)}
+                className="text-4xl font-bold tracking-tight text-stone-950"
+              >
                 {recipe.title}
               </h1>
               <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
@@ -183,8 +197,12 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
         )}
 
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <DetailBlock title="Ingredients">{recipe.ingredients}</DetailBlock>
-          <DetailBlock title="Instructions">{recipe.instructions}</DetailBlock>
+          <DetailBlock title="Ingredients" dir={getTextDirection(recipe.ingredients)}>
+            {recipe.ingredients}
+          </DetailBlock>
+          <DetailBlock title="Instructions" dir={getTextDirection(recipe.instructions)}>
+            {recipe.instructions}
+          </DetailBlock>
         </div>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
@@ -226,13 +244,14 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
         </section>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <DetailBlock title="Notes">
+          <DetailBlock title="Notes" dir={getTextDirection(recipe.notes)}>
             {recipe.notes || "No notes yet. Add reminders after your next test cook."}
           </DetailBlock>
           <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
             <h2 className="text-lg font-bold text-stone-950">Cooking Notes</h2>
             <form onSubmit={handleAddCookingNote} className="mt-4 grid gap-3">
               <textarea
+                dir={getTextDirection(newCookingNote)}
                 value={newCookingNote}
                 onChange={(event) => setNewCookingNote(event.target.value)}
                 rows={4}
@@ -253,7 +272,10 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                     <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
                       {formatLogDate(log.date)}
                     </p>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-700">
+                    <p
+                      dir={getTextDirection(log.text)}
+                      className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-700"
+                    >
                       {log.text}
                     </p>
                   </article>
@@ -296,6 +318,7 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                 </span>
                 <input
                   required
+                  dir={getTextDirection(versionName)}
                   value={versionName}
                   onChange={(event) => setVersionName(event.target.value)}
                   className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
@@ -309,6 +332,7 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                     Ingredients
                   </span>
                   <textarea
+                    dir={getTextDirection(versionIngredients)}
                     value={versionIngredients}
                     onChange={(event) => setVersionIngredients(event.target.value)}
                     rows={6}
@@ -321,6 +345,7 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                     Instructions
                   </span>
                   <textarea
+                    dir={getTextDirection(versionInstructions)}
                     value={versionInstructions}
                     onChange={(event) => setVersionInstructions(event.target.value)}
                     rows={6}
@@ -332,6 +357,7 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
               <label className="grid gap-2">
                 <span className="text-sm font-semibold text-stone-700">Notes</span>
                 <textarea
+                  dir={getTextDirection(versionNotes)}
                   value={versionNotes}
                   onChange={(event) => setVersionNotes(event.target.value)}
                   rows={4}
@@ -369,7 +395,12 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                       onClick={() => toggleVersion(version.id)}
                       className="flex w-full flex-col gap-1 p-4 text-left sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <span className="font-bold text-stone-950">{version.name}</span>
+                      <span
+                        dir={getTextDirection(version.name)}
+                        className="font-bold text-stone-950"
+                      >
+                        {version.name}
+                      </span>
                       <span className="text-xs font-bold uppercase tracking-wide text-stone-500">
                         {formatLogDate(version.createdAt)}
                       </span>
@@ -382,7 +413,10 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                             <p className="text-sm font-bold text-stone-700">
                               Ingredients
                             </p>
-                            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600">
+                            <p
+                              dir={getTextDirection(version.ingredients)}
+                              className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600"
+                            >
                               {version.ingredients ||
                                 "No ingredients saved for this version."}
                             </p>
@@ -391,7 +425,10 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                             <p className="text-sm font-bold text-stone-700">
                               Instructions
                             </p>
-                            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600">
+                            <p
+                              dir={getTextDirection(version.instructions)}
+                              className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600"
+                            >
                               {version.instructions ||
                                 "No instructions saved for this version."}
                             </p>
@@ -399,7 +436,10 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
                         </div>
                         <div className="mt-4">
                           <p className="text-sm font-bold text-stone-700">Notes</p>
-                          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600">
+                          <p
+                            dir={getTextDirection(version.notes)}
+                            className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-600"
+                          >
                             {version.notes || "No notes saved for this version."}
                           </p>
                         </div>

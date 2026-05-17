@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRecipes } from "@/components/recipe-provider";
+import { getTextDirection } from "@/lib/text-direction";
 
 function formatRating(rating: number) {
   return rating > 0 ? "★".repeat(rating) : "Not rated";
@@ -230,13 +231,19 @@ export default function Home() {
                         </span>
                       ))}
                     </div>
-                    <h3 className="text-xl font-bold text-stone-950">
+                    <h3
+                      dir={getTextDirection(recipe.title)}
+                      className="text-xl font-bold text-stone-950"
+                    >
                       {recipe.title}
                     </h3>
                     <p className="mt-2 text-sm font-semibold text-herb">
                       {formatServings(recipe.servings)}
                     </p>
-                    <p className="mt-3 line-clamp-3 flex-1 whitespace-pre-line text-sm leading-6 text-stone-600">
+                    <p
+                      dir={getTextDirection(recipe.ingredients)}
+                      className="mt-3 line-clamp-3 flex-1 whitespace-pre-line text-sm leading-6 text-stone-600"
+                    >
                       {recipe.ingredients}
                     </p>
                     <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4 text-sm font-medium text-stone-500">

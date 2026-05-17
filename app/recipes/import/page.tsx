@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { RecipeForm } from "@/components/recipe-form";
 import { useRecipes } from "@/components/recipe-provider";
 import type { RecipeFormValues } from "@/lib/recipe-types";
+import { getTextDirection } from "@/lib/text-direction";
 
 const sectionHeadings = {
   ingredients: ["ingredients", "ingredient list", "מצרכים", "רכיבים"],
@@ -157,6 +158,7 @@ export default function ImportRecipePage() {
               </span>
               <textarea
                 required
+                dir={getTextDirection(pastedText)}
                 value={pastedText}
                 onChange={(event) => setPastedText(event.target.value)}
                 rows={12}

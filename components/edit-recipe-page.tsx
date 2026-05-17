@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RecipeForm } from "@/components/recipe-form";
 import { useRecipes } from "@/components/recipe-provider";
 import type { RecipeFormValues } from "@/lib/recipe-types";
+import { getTextDirection } from "@/lib/text-direction";
 
 export function EditRecipePage({ recipeId }: { recipeId: string }) {
   const router = useRouter();
@@ -49,7 +50,8 @@ export function EditRecipePage({ recipeId }: { recipeId: string }) {
         <div className="mb-8 mt-6">
           <p className="font-semibold text-tomato">Edit Recipe</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-stone-950">
-            Update {recipe.title}
+            Update{" "}
+            <span dir={getTextDirection(recipe.title)}>{recipe.title}</span>
           </h1>
           <p className="mt-3 text-stone-600">
             Adjust ingredients, instructions, notes, tags, source, status, or rating.
