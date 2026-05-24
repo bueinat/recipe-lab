@@ -1,3 +1,9 @@
+import {
+  clampScore,
+  getLanguageHint,
+  type LanguageHint,
+  type RecipeExtractionResult,
+} from "./recipe-extraction";
 import type { RecipeFormValues } from "./recipe-types";
 
 const sectionHeadings = {
@@ -17,19 +23,17 @@ const sectionHeadings = {
 
 type ImportSection = keyof typeof sectionHeadings;
 
-export type ExtractionConfidence = {
-  overall: number;
-  title: number;
-  ingredients: number;
-  instructions: number;
-  notes: number;
-};
+export type { ExtractionConfidence } from "./recipe-extraction";
 
 export type LocalRecipeExtractionResult = {
-  recipe: RecipeFormValues;
   source: "local";
-  confidence: ExtractionConfidence;
-  warnings: string[];
+} & RecipeExtractionResult;
+
+export type PreprocessedRecipeText = {
+  normalizedText: string;
+  cleanedLines: string[];
+  cleanedText: string;
+  languageHint: LanguageHint;
 };
 
 function normalizeHeading(line: string) {
@@ -121,8 +125,17 @@ function removeSocialNoise(lines: string[]) {
   });
 }
 
-function clampScore(value: number) {
-  return Math.max(0, Math.min(1, Number(value.toFixed(2))));
+export function preprocessRecipeText(pastedText: string): PreprocessedRecipeText {
+  const normalizedText = normalizeWhitespace(pastedText);
+  const normalizedLines = normalizedText.split("\n").map((line) => line.trim());
+  const cleanedLines = removeSocialNoise(normalizedLines);
+
+  return {
+    normalizedText,
+    cleanedLines,
+    cleanedText: cleanedLines.join("\n").trim(),
+    languageHint: getLanguageHint(normalizedText),
+  };
 }
 
 export function extractRecipeFromTextLocally({
@@ -134,9 +147,8 @@ export function extractRecipeFromTextLocally({
   pastedText: string;
   sourceUrl: string;
 }): LocalRecipeExtractionResult {
-  const normalizedText = normalizeWhitespace(pastedText);
-  const normalizedLines = normalizedText.split("\n").map((line) => line.trim());
-  const cleanedLines = removeSocialNoise(normalizedLines);
+  const { cleanedLines, languageHint, normalizedText } =
+    preprocessRecipeText(pastedText);
 
   const firstNonHeadingLine = cleanedLines.find(
     (line) => Boolean(line) && !getSectionForLine(line),
@@ -239,6 +251,7 @@ export function extractRecipeFromTextLocally({
       instructions: clampScore(instructionsScore),
       notes: clampScore(notesScore),
     },
+    languageHint,
     warnings,
   };
 }
