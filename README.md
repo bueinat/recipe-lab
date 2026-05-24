@@ -10,7 +10,7 @@ Recipe Lab stores recipes in React local state and saves them to `localStorage` 
 
 - Browse, search, filter, and sort a small mock recipe collection
 - Add a new recipe from the homepage or navigation
-- Import a draft recipe from pasted text with local preprocessing, heading detection, confidence scoring, and review
+- Import a draft recipe from pasted text with local preprocessing, optional AI extraction, confidence scoring, and review
 - Keep recipe changes after refresh with browser `localStorage`
 - View recipe details
 - Add cooking notes to a recipe log
@@ -29,6 +29,16 @@ npm run dev
 ```
 
 Open http://localhost:3000 to view the app.
+
+## Optional AI extraction
+
+Local extraction works without any API key. To enable the optional AI Extract button for low-confidence imports, create `.env.local` in the project root:
+
+```bash
+OPENAI_API_KEY=your_api_key_here
+```
+
+Restart the development server after adding the key. `.env.local` is ignored by git via `.env*.local`.
 
 ## Useful scripts
 
