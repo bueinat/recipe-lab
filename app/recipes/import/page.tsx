@@ -5,108 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { RecipeForm } from "@/components/recipe-form";
 import { useRecipes } from "@/components/recipe-provider";
+import {
+  extractRecipeFromTextLocally,
+  type LocalRecipeExtractionResult,
+} from "@/lib/local-recipe-extraction";
 import type { RecipeFormValues } from "@/lib/recipe-types";
 import { getTextDirection } from "@/lib/text-direction";
-
-const sectionHeadings = {
-  ingredients: ["ingredients", "ingredient list", "מצרכים", "רכיבים"],
-  instructions: [
-    "instructions",
-    "directions",
-    "method",
-    "preparation",
-    "הוראות",
-    "אופן הכנה",
-    "הכנה",
-  ],
-  notes: ["notes", "tips", "comments", "הערות", "טיפים"],
-  source: ["source", "link", "url", "מקור", "קישור"],
-} as const;
-
-type ImportSection = keyof typeof sectionHeadings;
-
-function normalizeHeading(line: string) {
-  return line.trim().toLowerCase().replace(/[:：-]+$/, "").trim();
-}
-
-function getSectionForLine(line: string): ImportSection | null {
-  const normalizedLine = normalizeHeading(line);
-
-  for (const [section, headings] of Object.entries(sectionHeadings)) {
-    if ((headings as readonly string[]).includes(normalizedLine)) {
-      return section as ImportSection;
-    }
-  }
-
-  return null;
-}
-
-function findFirstUrl(text: string) {
-  return text.match(/https?:\/\/\S+/)?.[0] ?? "";
-}
-
-function mockExtractRecipeFromText({
-  imageUrl,
-  pastedText,
-  sourceUrl,
-}: {
-  imageUrl: string;
-  pastedText: string;
-  sourceUrl: string;
-}): RecipeFormValues {
-  const lines = pastedText.split("\n").map((line) => line.trim());
-  const firstNonEmptyLine = lines.find(Boolean);
-  const titleLine =
-    firstNonEmptyLine && !getSectionForLine(firstNonEmptyLine)
-      ? firstNonEmptyLine
-      : undefined;
-  const sections: Record<ImportSection, string[]> = {
-    ingredients: [],
-    instructions: [],
-    notes: [],
-    source: [],
-  };
-  let currentSection: ImportSection | null = null;
-  let foundSectionHeading = false;
-
-  lines.forEach((line) => {
-    if (!line) {
-      return;
-    }
-
-    const nextSection = getSectionForLine(line);
-
-    if (nextSection) {
-      currentSection = nextSection;
-      foundSectionHeading = true;
-      return;
-    }
-
-    if (currentSection) {
-      sections[currentSection].push(line);
-    }
-  });
-
-  const pastedUrl = findFirstUrl(pastedText);
-  const sourceSectionUrl = findFirstUrl(sections.source.join("\n"));
-
-  return {
-    title: titleLine || "Untitled imported recipe",
-    imageUrl: imageUrl.trim(),
-    servings: 1,
-    ingredients: foundSectionHeading
-      ? sections.ingredients.join("\n")
-      : pastedText.trim(),
-    instructions: foundSectionHeading ? sections.instructions.join("\n") : "",
-    notes: sections.notes.join("\n"),
-    tags: ["imported"],
-    sourceUrl: sourceUrl.trim() || sourceSectionUrl || pastedUrl,
-    status: "Idea",
-    rating: 0,
-    cookingLogs: [],
-    versions: [],
-  };
-}
 
 export default function ImportRecipePage() {
   const router = useRouter();
@@ -115,17 +19,20 @@ export default function ImportRecipePage() {
   const [sourceUrl, setSourceUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [draftRecipe, setDraftRecipe] = useState<RecipeFormValues | null>(null);
+  const [extractionResult, setExtractionResult] =
+    useState<LocalRecipeExtractionResult | null>(null);
 
   function handleExtractDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setDraftRecipe(
-      mockExtractRecipeFromText({
-        imageUrl,
-        pastedText,
-        sourceUrl,
-      }),
-    );
+    const localExtraction = extractRecipeFromTextLocally({
+      imageUrl,
+      pastedText,
+      sourceUrl,
+    });
+
+    setExtractionResult(localExtraction);
+    setDraftRecipe(localExtraction.recipe);
   }
 
   function handleSaveRecipe(recipe: RecipeFormValues) {
@@ -145,8 +52,8 @@ export default function ImportRecipePage() {
             Paste, review, then save
           </h1>
           <p className="mt-3 text-stone-600">
-            This is ready for future AI extraction, but today it uses a simple
-            mock extractor so you can review and edit every field before saving.
+            This currently uses local preprocessing and heading-based extraction
+            so you can review and edit every field before saving.
           </p>
         </div>
 
@@ -207,9 +114,27 @@ export default function ImportRecipePage() {
             <div className="rounded-2xl bg-orange-50 p-4 text-sm text-stone-700">
               <p className="font-bold text-stone-950">Review extracted draft</p>
               <p className="mt-2">
-                The mock extractor looked for common recipe headings and filled
-                the draft below. Edit anything before saving.
+                Local extraction prepared the draft below. Review and edit anything before saving.
               </p>
+              {extractionResult ? (
+                <div className="mt-4 grid gap-3 rounded-xl bg-white p-3 ring-1 ring-orange-100">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                    Extraction source: {extractionResult.source}
+                  </p>
+                  <p className="text-xs text-stone-600">
+                    Confidence — overall: {Math.round(extractionResult.confidence.overall * 100)}%, title: {Math.round(extractionResult.confidence.title * 100)}%, ingredients: {Math.round(extractionResult.confidence.ingredients * 100)}%, instructions: {Math.round(extractionResult.confidence.instructions * 100)}%, notes: {Math.round(extractionResult.confidence.notes * 100)}%
+                  </p>
+                  {extractionResult.warnings.length > 0 ? (
+                    <ul className="list-disc space-y-1 pl-5 text-xs text-stone-600">
+                      {extractionResult.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-stone-600">No extraction warnings.</p>
+                  )}
+                </div>
+              ) : null}
             </div>
             <RecipeForm
               key={draftRecipe.title}
@@ -219,7 +144,10 @@ export default function ImportRecipePage() {
             />
             <button
               type="button"
-              onClick={() => setDraftRecipe(null)}
+              onClick={() => {
+                setDraftRecipe(null);
+                setExtractionResult(null);
+              }}
               className="rounded-2xl bg-stone-100 px-5 py-3 font-bold text-stone-700 transition hover:bg-stone-200"
             >
               Back to pasted text
