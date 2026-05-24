@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -46,42 +47,72 @@ function makeRecipeVersionId() {
   return `version-${Date.now()}`;
 }
 
+function normalizeRecipe(recipe: Recipe): Recipe {
+  return {
+    ...recipe,
+    cookingLogs: recipe.cookingLogs ?? [],
+    versions: recipe.versions ?? [],
+  };
+}
+
+function normalizeRecipes(recipes: Recipe[]) {
+  return recipes.map(normalizeRecipe);
+}
+
 function readStoredRecipes() {
   const storedRecipes = window.localStorage.getItem(STORAGE_KEY);
 
   if (!storedRecipes) {
-    return sampleRecipes;
+    return normalizeRecipes(sampleRecipes);
   }
 
   try {
     const parsedRecipes = JSON.parse(storedRecipes);
 
-    if (Array.isArray(parsedRecipes) && parsedRecipes.length > 0) {
-      return parsedRecipes as Recipe[];
+    if (Array.isArray(parsedRecipes)) {
+      if (parsedRecipes.length > 0) {
+        return normalizeRecipes(parsedRecipes as Recipe[]);
+      }
+
+      return normalizeRecipes(sampleRecipes);
     }
   } catch {
     // Fall back to mock recipes if saved data cannot be read.
   }
 
-  return sampleRecipes;
+  return normalizeRecipes(sampleRecipes);
 }
 
 export function RecipeProvider({ children }: { children: ReactNode }) {
-  const [recipes, setRecipes] = useState<Recipe[]>(sampleRecipes);
-  const [hasLoadedStoredRecipes, setHasLoadedStoredRecipes] = useState(false);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [hasHydratedFromStorage, setHasHydratedFromStorage] = useState(false);
+  const lastSavedRecipesRef = useRef("");
 
   useEffect(() => {
-    setRecipes(readStoredRecipes());
-    setHasLoadedStoredRecipes(true);
+    // Hydration runs exactly once per mount. We load localStorage first,
+    // normalize legacy recipes, and only then allow persistence writes.
+    const initialRecipes = readStoredRecipes();
+    setRecipes(initialRecipes);
+    lastSavedRecipesRef.current = JSON.stringify(initialRecipes);
+    setHasHydratedFromStorage(true);
   }, []);
 
   useEffect(() => {
-    if (!hasLoadedStoredRecipes) {
+    // Do not write sample/default state before hydration finishes.
+    if (!hasHydratedFromStorage) {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
-  }, [hasLoadedStoredRecipes, recipes]);
+    // Save only when recipes actually changed to prevent write loops.
+    const serializedRecipes = JSON.stringify(recipes);
+
+    if (serializedRecipes === lastSavedRecipesRef.current) {
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, serializedRecipes);
+    lastSavedRecipesRef.current = serializedRecipes;
+  }, [hasHydratedFromStorage, recipes]);
 
   const value = useMemo<RecipeContextValue>(() => {
     function addRecipe(recipe: RecipeFormValues) {

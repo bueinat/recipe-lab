@@ -123,10 +123,10 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
       <main className="px-6 py-10 sm:px-10 lg:px-16">
         <section className="mx-auto max-w-3xl rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-stone-200">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-tomato">
-            Missing recipe
+            Recipe not found
           </p>
           <h1 className="mt-4 text-3xl font-bold text-stone-950">
-            We could not find that recipe.
+            This recipe is not available in this browser.
           </h1>
           <p className="mt-3 text-stone-600">
             Recipe Lab saves recipes in this browser, with mock recipes as a fallback.
