@@ -41,7 +41,7 @@ function formatLogDate(date: string) {
 }
 
 export function RecipeDetails({ recipeId }: { recipeId: string }) {
-  const { addCookingLog, addRecipeVersion, getRecipe } = useRecipes();
+  const { addCookingLog, addRecipeVersion, getRecipe, hasHydratedFromStorage } = useRecipes();
   const [newCookingNote, setNewCookingNote] = useState("");
   const [desiredServings, setDesiredServings] = useState("1");
   const [versionName, setVersionName] = useState("");

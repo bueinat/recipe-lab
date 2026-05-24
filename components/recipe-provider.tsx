@@ -23,6 +23,7 @@ type RecipeContextValue = {
   addCookingLog: (recipeId: string, text: string) => void;
   addRecipeVersion: (recipeId: string, version: RecipeVersionInput) => void;
   getRecipe: (id: string) => Recipe | undefined;
+  hasHydratedFromStorage: boolean;
 };
 
 const STORAGE_KEY = "recipe-lab-recipes";
@@ -74,7 +75,7 @@ function readStoredRecipes() {
         return normalizeRecipes(parsedRecipes as Recipe[]);
       }
 
-      return normalizeRecipes(sampleRecipes);
+      return [];
     }
   } catch {
     // Fall back to mock recipes if saved data cannot be read.
@@ -84,7 +85,7 @@ function readStoredRecipes() {
 }
 
 export function RecipeProvider({ children }: { children: ReactNode }) {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>(sampleRecipes);
   const [hasHydratedFromStorage, setHasHydratedFromStorage] = useState(false);
   const lastSavedRecipesRef = useRef("");
 
@@ -92,7 +93,11 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
     // Hydration runs exactly once per mount. We load localStorage first,
     // normalize legacy recipes, and only then allow persistence writes.
     const initialRecipes = readStoredRecipes();
-    setRecipes(initialRecipes);
+
+    if (initialRecipes.length > 0) {
+      setRecipes(initialRecipes);
+    }
+
     lastSavedRecipesRef.current = JSON.stringify(initialRecipes);
     setHasHydratedFromStorage(true);
   }, []);
@@ -199,8 +204,9 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
       addCookingLog,
       addRecipeVersion,
       getRecipe,
+      hasHydratedFromStorage,
     };
-  }, [recipes]);
+  }, [hasHydratedFromStorage, recipes]);
 
   return (
     <RecipeContext.Provider value={value}>{children}</RecipeContext.Provider>
