@@ -6,12 +6,7 @@ import { useState, type FormEvent } from "react";
 import { RecipeForm } from "@/components/recipe-form";
 import { useRecipes } from "@/components/recipe-provider";
 import {
-  extractRecipeFromTextLocally,
-  type LocalRecipeExtractionResult,
-} from "@/lib/local-recipe-extraction";
-import {
-  mergeAiExtractionWithLocal,
-  shouldOfferAiExtraction,
+  createRecipeFromAiExtraction,
   type AiRecipeExtraction,
   type RecipeExtractionResult,
 } from "@/lib/recipe-extraction";
@@ -22,6 +17,13 @@ type AiExtractResponse = {
   extraction?: AiRecipeExtraction;
   error?: string;
   model?: string;
+  preprocessing?: {
+    detectedSourceUrl: string;
+    inputCharacterLimit: number;
+    removedLineCount: number;
+    sentCharacterCount: number;
+    wasTruncated: boolean;
+  };
 };
 
 export default function ImportRecipePage() {
@@ -32,41 +34,21 @@ export default function ImportRecipePage() {
   const [imageUrl, setImageUrl] = useState("");
   const [draftRecipe, setDraftRecipe] = useState<RecipeFormValues | null>(null);
   const [draftRevision, setDraftRevision] = useState(0);
-  const [localExtractionResult, setLocalExtractionResult] =
-    useState<LocalRecipeExtractionResult | null>(null);
   const [extractionResult, setExtractionResult] =
     useState<RecipeExtractionResult | null>(null);
+  const [preprocessingSummary, setPreprocessingSummary] =
+    useState<AiExtractResponse["preprocessing"]>(undefined);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
 
-  const canUseAiExtraction = localExtractionResult
-    ? shouldOfferAiExtraction(localExtractionResult) &&
-      extractionResult?.source === "local"
-    : false;
-
-  function handleExtractDraft(event: FormEvent<HTMLFormElement>) {
+  async function handleExtractDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const localExtraction = extractRecipeFromTextLocally({
-      imageUrl,
-      pastedText,
-      sourceUrl,
-    });
-
-    setAiError("");
-    setLocalExtractionResult(localExtraction);
-    setExtractionResult(localExtraction);
-    setDraftRecipe(localExtraction.recipe);
-    setDraftRevision((currentRevision) => currentRevision + 1);
-  }
-
-  async function handleAiExtract() {
-    if (!localExtractionResult) {
-      return;
-    }
 
     setIsAiLoading(true);
     setAiError("");
+    setDraftRecipe(null);
+    setExtractionResult(null);
+    setPreprocessingSummary(undefined);
 
     try {
       const response = await fetch("/api/recipes/ai-extract", {
@@ -84,10 +66,10 @@ export default function ImportRecipePage() {
         throw new Error(responseBody.error || "AI extraction failed. Try again later.");
       }
 
-      const recipe = mergeAiExtractionWithLocal({
+      const recipe = createRecipeFromAiExtraction({
         aiExtraction: responseBody.extraction,
+        detectedSourceUrl: responseBody.preprocessing?.detectedSourceUrl ?? "",
         imageUrl,
-        localRecipe: localExtractionResult.recipe,
         sourceUrl,
       });
 
@@ -100,12 +82,13 @@ export default function ImportRecipePage() {
         languageHint: responseBody.extraction.languageHint,
         model: responseBody.model,
       });
+      setPreprocessingSummary(responseBody.preprocessing);
       setDraftRevision((currentRevision) => currentRevision + 1);
     } catch (error) {
       setAiError(
         error instanceof Error
           ? error.message
-          : "AI extraction failed. Keep using the local draft or try again.",
+          : "AI extraction failed. Check the pasted text and try again.",
       );
     } finally {
       setIsAiLoading(false);
@@ -129,8 +112,8 @@ export default function ImportRecipePage() {
             Paste, review, then save
           </h1>
           <p className="mt-3 text-stone-600">
-            Local extraction runs first. AI is optional and only offered when the
-            local draft looks incomplete.
+            Paste recipe text, run AI extraction, then review and edit the draft
+            before saving.
           </p>
         </div>
 
@@ -181,19 +164,23 @@ export default function ImportRecipePage() {
 
             <button
               type="submit"
-              className="rounded-2xl bg-herb px-5 py-3 font-bold text-white shadow-sm transition hover:bg-green-800"
+              disabled={isAiLoading}
+              className="rounded-2xl bg-herb px-5 py-3 font-bold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-stone-400"
             >
-              Extract draft
+              {isAiLoading ? "Extracting with AI..." : "Extract with AI"}
             </button>
+            {aiError ? (
+              <p role="alert" className="text-sm font-semibold text-red-700">
+                {aiError}
+              </p>
+            ) : null}
           </form>
         ) : (
           <div className="grid gap-6">
             <div className="rounded-2xl bg-orange-50 p-4 text-sm text-stone-700">
               <p className="font-bold text-stone-950">Review extracted draft</p>
               <p className="mt-2">
-                {extractionResult?.source === "ai"
-                  ? "AI extraction updated the draft below. Review and edit anything before saving."
-                  : "Local extraction prepared the draft below. Review and edit anything before saving."}
+                AI extraction prepared the draft below. Review and edit anything before saving.
               </p>
               {extractionResult ? (
                 <div className="mt-4 grid gap-3 rounded-xl bg-white p-3 ring-1 ring-orange-100">
@@ -207,6 +194,15 @@ export default function ImportRecipePage() {
                   <p className="text-xs text-stone-600">
                     Language hint: {extractionResult.languageHint}
                   </p>
+                  {preprocessingSummary ? (
+                    <p className="text-xs text-stone-600">
+                      Preprocessed {preprocessingSummary.sentCharacterCount} characters for AI
+                      {preprocessingSummary.wasTruncated
+                        ? ` (limited to ${preprocessingSummary.inputCharacterLimit})`
+                        : ""}
+                      .
+                    </p>
+                  ) : null}
                   {extractionResult.warnings.length > 0 ? (
                     <ul className="list-disc space-y-1 pl-5 text-xs text-stone-600">
                       {extractionResult.warnings.map((warning) => (
@@ -216,22 +212,6 @@ export default function ImportRecipePage() {
                   ) : (
                     <p className="text-xs text-stone-600">No extraction warnings.</p>
                   )}
-                </div>
-              ) : null}
-              {canUseAiExtraction ? (
-                <div className="mt-4 grid gap-3 rounded-xl bg-white p-3 ring-1 ring-orange-100">
-                  <p className="text-xs text-stone-600">
-                    The local draft is low-confidence or missing important fields.
-                    AI can try one server-side extraction using the cleaned text.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleAiExtract}
-                    disabled={isAiLoading}
-                    className="w-fit rounded-2xl bg-stone-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-400"
-                  >
-                    {isAiLoading ? "Extracting with AI..." : "AI Extract"}
-                  </button>
                 </div>
               ) : null}
               {aiError ? (
@@ -251,7 +231,7 @@ export default function ImportRecipePage() {
               onClick={() => {
                 setDraftRecipe(null);
                 setExtractionResult(null);
-                setLocalExtractionResult(null);
+                setPreprocessingSummary(undefined);
                 setAiError("");
               }}
               className="rounded-2xl bg-stone-100 px-5 py-3 font-bold text-stone-700 transition hover:bg-stone-200"

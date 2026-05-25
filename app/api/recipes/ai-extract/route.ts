@@ -3,13 +3,12 @@ import {
   AI_RECIPE_EXTRACTION_SCHEMA,
   sanitizeAiRecipeExtraction,
 } from "@/lib/recipe-extraction";
-import { preprocessRecipeText } from "@/lib/local-recipe-extraction";
+import { preprocessRecipeImportText } from "@/lib/recipe-import-preprocessing";
 
 export const runtime = "nodejs";
 
 const OPENAI_MODEL = "gpt-5.4-mini";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const MAX_AI_INPUT_CHARACTERS = 12000;
 const AI_TIMEOUT_MS = 20000;
 
 export async function POST(request: Request) {
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "AI extraction is optional and is not configured yet. Add OPENAI_API_KEY to .env.local and restart the server, or keep using the local draft.",
+          "AI recipe extraction requires API setup. Add OPENAI_API_KEY to .env.local and restart the server.",
       },
       { status: 503 },
     );
@@ -35,13 +34,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const { cleanedText, languageHint } = preprocessRecipeText(pastedText);
+  const preprocessing = preprocessRecipeImportText(pastedText);
 
-  if (cleanedText.length < 20) {
+  if (preprocessing.aiInputText.length < 20) {
     return NextResponse.json(
       {
         error:
-          "There is not enough recipe text for AI extraction. Add more pasted text or keep editing the local draft.",
+          "There is not enough recipe text for AI extraction. Add more pasted text and try again.",
       },
       { status: 400 },
     );
@@ -67,10 +66,16 @@ export async function POST(request: Request) {
           },
           {
             role: "user",
-            content: `Language hint: ${languageHint}\n\nCleaned recipe text:\n${cleanedText.slice(
-              0,
-              MAX_AI_INPUT_CHARACTERS,
-            )}`,
+            content: [
+              `Language hint: ${preprocessing.languageHint}`,
+              `Detected source URL: ${preprocessing.detectedSourceUrl || "none"}`,
+              `Optional section heading hints: ${
+                preprocessing.sectionHints.join(", ") || "none"
+              }`,
+              "",
+              "Cleaned recipe text:",
+              preprocessing.aiInputText,
+            ].join("\n"),
           },
         ],
         max_output_tokens: 1200,
@@ -90,7 +95,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "AI extraction could not run right now. Keep using the local draft or try again later.",
+            "AI extraction could not run right now. Try again later.",
         },
         { status: response.status >= 500 ? 502 : response.status },
       );
@@ -103,7 +108,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "AI extraction could not safely extract this text. Keep using the local draft.",
+            "AI extraction could not safely extract this text. Review the pasted text and try again.",
         },
         { status: 422 },
       );
@@ -115,7 +120,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "AI extraction returned an empty response. Keep using the local draft or try again.",
+            "AI extraction returned an empty response. Try again.",
         },
         { status: 502 },
       );
@@ -126,6 +131,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       extraction,
+      preprocessing: {
+        detectedSourceUrl: preprocessing.detectedSourceUrl,
+        inputCharacterLimit: preprocessing.inputCharacterLimit,
+        removedLineCount: preprocessing.removedLineCount,
+        sentCharacterCount: preprocessing.aiInputText.length,
+        wasTruncated: preprocessing.wasTruncated,
+      },
       model: OPENAI_MODEL,
       source: "ai",
     });
@@ -137,8 +149,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: isTimeout
-          ? "AI extraction timed out. Keep using the local draft or try again."
-          : "AI extraction returned invalid JSON. Keep using the local draft or try again.",
+          ? "AI extraction timed out. Try again."
+          : "AI extraction returned invalid JSON. Try again.",
       },
       { status: isTimeout ? 504 : 502 },
     );

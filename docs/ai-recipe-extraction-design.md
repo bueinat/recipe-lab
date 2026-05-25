@@ -1,283 +1,122 @@
-# AI Recipe Extraction Architecture Design (Cost-Optimized)
+# AI Recipe Extraction Architecture Design
 
-## Purpose and constraints
+## Product decision
 
-This document proposes a **small-project, practical architecture** for extracting structured recipes from messy text (Instagram captions, Facebook posts, blog copy/paste), while minimizing OpenAI API cost.
+AI is the main extraction method for imports. Local code should not try to fully parse recipes, decide whether a draft is good enough, or replace the model with a handwritten parser. Local code exists to clean pasted text, reduce token usage, preserve obvious metadata, and improve the quality of a single explicit AI extraction request.
 
-Key constraints:
+Recipe storage remains local-first: imported recipes are still reviewed by the user and saved to browser `localStorage`. The import extraction step requires server-side OpenAI setup.
 
-- Keep the current app simple (local-first, browser recipes).
-- Use AI only when local logic is not enough.
-- Always let users review extracted data before saving.
-- Avoid expensive repeated calls.
+## Import pipeline
 
----
-
-## 1) Recommended AI architecture
-
-## High-level pipeline
-
-1. **User pastes text** (and optional URL) in Import page.
-2. **Local preprocessing** runs first (fast, free):
+1. User pastes recipe text and optionally enters a source URL and image URL.
+2. The browser sends the pasted text to a server route only when the user clicks **Extract with AI**.
+3. The server runs local preprocessing:
    - normalize whitespace
-   - remove social-media noise
-   - detect headings/sections
-   - extract URL(s)
-   - estimate language direction (Hebrew/English/mixed)
-3. **Local parser attempts extraction**.
-4. If local confidence is high enough → **skip AI**.
-5. If local confidence is low/medium or content is messy → **call AI extractor** (server-side only).
-6. Validate AI JSON response against schema.
-7. Merge results with local heuristics, then show draft in **review-before-save** form.
+   - remove obvious social noise
+   - remove hashtag-only lines
+   - remove follow/share/save/like CTA lines
+   - remove emoji-only and decorative-only lines
+   - remove ratings, sponsored, affiliate, and similar metadata when clearly irrelevant
+   - extract obvious URLs and remove tracking parameters where practical
+   - collect lightweight section-heading hints without parsing fields
+   - cap the text sent to the model
+4. The server calls OpenAI with the cleaned text, source URL hints, language hint, and optional section-heading hints.
+5. OpenAI extracts structured recipe fields.
+6. The server validates and sanitizes the model response.
+7. The browser maps the result into the editable review form.
+8. The user reviews, edits, and saves.
 
-## When AI should be used
+The flow is:
 
-Use AI when one or more are true:
+```text
+raw pasted text -> local preprocessing/cleanup -> AI extraction -> editable review form -> save
+```
 
-- No clear section headings were found.
-- Headings exist but fields are sparse or contradictory.
-- Steps and ingredients are mixed together.
-- Content includes storytelling + recipe details in one block.
-- Local parser confidence score is below threshold (example: < 0.65).
+## What local preprocessing should do
 
-## When local parsing should be used instead
+Local preprocessing should stay cheap, predictable, and conservative. It may remove lines that are clearly unrelated to the recipe, such as:
 
-Use local-only extraction when:
+- hashtag-only lines
+- follow/share/save/like calls to action
+- decorative separators and emoji-only lines
+- sponsored, affiliate, rating, posted-by, and comment-count metadata
+- obvious URLs after extracting them as metadata
 
-- Clean headings are present (ingredients/instructions/notes).
-- Enough content appears in the expected fields.
-- Field-level confidence is high and no obvious ambiguity exists.
+It should normalize line endings and repeated whitespace, preserve original language and text order, and cap the cleaned text length before the model request.
 
-This avoids unnecessary API calls and keeps import near-instant.
+It may detect likely section headings such as `ingredients`, `instructions`, `method`, `notes`, `source`, or `url` as hints for the model. It should not use those headings to build a complete recipe draft locally.
 
-## Fallback strategy
+## What AI should do
 
-Use a staged fallback:
+AI is responsible for extracting:
 
-1. **Local parse only** (best case).
-2. **Single AI extraction call** if local is weak.
-3. If AI fails (timeout/invalid JSON), fall back to local draft + warning.
-4. If AI partially succeeds, keep partial result and mark uncertain fields for review.
+- `title`
+- `ingredients`
+- `instructions`
+- `notes`
+- `servings`
+- `tags`
+- `languageHint`
+- `confidence`
+- `warnings`
 
-Never block user from continuing; always provide editable draft.
+The prompt should stay concise and ask for strict JSON only. The model should prefer empty fields plus warnings over invented quantities, times, temperatures, or steps.
 
----
+## Server-side OpenAI route
 
-## 2) Cost optimization
+The app should call OpenAI only from a Next.js server route. The browser must never receive or use `OPENAI_API_KEY`.
 
-## Recommended OpenAI model strategy
+The route should:
 
-For this project, use a **two-tier model plan**:
+- read `OPENAI_API_KEY` from `process.env`
+- return a clear setup error when the key is missing
+- preprocess text before sending it to OpenAI
+- use a low-cost model suitable for structured extraction
+- request strict JSON with a schema
+- validate and sanitize the response before returning it to the client
+- avoid logging full pasted recipe text
 
-- **Primary extractor model:** a low-cost, fast small model (for most imports).
-- **Fallback extractor model:** a stronger model only when the small model is low-confidence or malformed.
+## Model and cost strategy
 
-Why this fits recipe extraction:
+Use a small, low-cost model that supports structured outputs for the first implementation. Recipe import is a bounded extraction task, so cost control should primarily come from preprocessing and input length limits rather than building a second local parser.
 
-- Most recipe extraction tasks are structured transformation, not deep reasoning.
-- Small models are often sufficient after good preprocessing.
-- Escalation to a larger model can be rare and controlled.
+Cost controls:
 
-(Choose exact model names from currently available OpenAI catalog at implementation time.)
+- send cleaned text instead of raw paste
+- cap model input length
+- keep prompts short
+- extract URLs locally and pass them as metadata
+- call AI only on explicit button click
+- avoid retries except for future carefully scoped transient-error handling
 
-## Token reduction strategies
+## UX
 
-- Send **cleaned text**, not raw paste.
-- Cap maximum input length (e.g., first N useful lines/characters after cleaning).
-- Remove repeated boilerplate and emoji-only lines.
-- Use concise system instructions and strict JSON output format.
-- Request only needed fields (no prose explanation).
+The import page should present AI extraction as the extraction method. It should not imply that local extraction is the main high-quality parser.
 
-## Preprocessing ideas that reduce cost
+Recommended states:
 
-- Strip hashtags, follow/share CTAs, long comment threads copied into post text.
-- Remove duplicate lines and repeated separators.
-- Keep extracted URLs outside model input when possible (pass separately as metadata).
+- empty form with pasted text, optional source URL, optional image URL, and **Extract with AI**
+- loading state while the AI request runs
+- clear setup error if `OPENAI_API_KEY` is missing
+- editable review form after successful extraction
+- extraction summary showing source `ai`, confidence, language hint, warnings, and whether preprocessing truncated the input
 
-## Caching ideas
+The user-provided source URL and image URL should be preserved when mapping the AI response into the review form. If the user did not provide a source URL, an obvious URL detected during preprocessing may be used.
 
-Use server-side cache keyed by normalized input hash:
+## Failure behavior
 
-- `cacheKey = sha256(normalizedText + sourceUrl + schemaVersion)`
-- Cache successful extraction JSON and confidence metadata.
-- TTL can be long for personal app usage (e.g., 30–90 days).
-- Invalidate cache when schema version changes.
+If AI extraction fails, keep the pasted text on screen and show a clear error. Do not silently fall back to a local parser that pretends to produce a complete draft.
 
-This prevents paying twice for the same pasted recipe.
+Examples:
 
-## Retry and error handling
+- Missing API key: explain that AI extraction requires `OPENAI_API_KEY` in `.env.local`.
+- Not enough text: ask the user to paste more recipe content.
+- Timeout or provider error: ask the user to try again later.
+- Invalid model response: ask the user to try again and keep the pasted text editable.
 
-- Timeout each AI request.
-- Retry at most once on transient failures.
-- Do **not** retry on validation failures repeatedly; escalate model once at most.
-- Record failure reason categories: timeout, network, invalid JSON, low confidence.
+## Future extensions
 
-## Avoiding unnecessary API calls
-
-- Gate with local confidence first.
-- Debounce imports so only explicit “Extract” triggers call.
-- Never call AI on every keystroke.
-- Skip AI for very short inputs that cannot contain recipe content.
-
----
-
-## 3) Input preprocessing
-
-## What to remove before sending to AI
-
-- Social handles and mention-only lines (`@...`) when non-instructional.
-- CTA boilerplate: “like/share/follow/save this post”.
-- Engagement bait and giveaway text.
-- Hashtag-only lines and emoji-only clusters.
-- Duplicate decorative separators (`---`, `***`, repeated emojis).
-
-## Social-media noise filtering
-
-Heuristics:
-
-- Remove lines with high symbol/emoji ratio and no ingredient verbs/numbers.
-- Remove lines matching common CTA phrases in English/Hebrew.
-- Preserve lines containing quantities, units, or cooking verbs.
-
-## Heading detection
-
-Detect likely sections from English + Hebrew heading aliases:
-
-- Ingredients / מצרכים / רכיבים
-- Instructions / Directions / Method / הוראות / אופן הכנה
-- Notes / Tips / הערות / טיפים
-- Source / Link / URL / מקור
-
-Keep this local and cheap before AI.
-
-## URL extraction
-
-- Extract first URL and section-specific URL candidates locally.
-- Pass source URL separately to schema.
-- Remove tracking query params where practical for deduping.
-
-## Hebrew/English handling
-
-- Keep existing RTL/LTR direction detection in UI.
-- During preprocessing, keep original text order; do not transliterate.
-- Include language hint in AI request metadata (`he`, `en`, or `mixed`) based on character distribution.
-
----
-
-## 4) Output design
-
-## Recommended structured JSON schema
-
-Return a strict object like:
-
-- `title: string`
-- `ingredients: string[]`
-- `instructions: string[]`
-- `notes: string`
-- `sourceUrl: string`
-- `servings: number | null`
-- `tags: string[]`
-- `languageHint: "he" | "en" | "mixed" | "unknown"`
-- `confidence: { overall: number, title: number, ingredients: number, instructions: number, notes: number }`
-- `uncertainFields: string[]`
-- `warnings: string[]`
-
-Then map arrays to the app’s current multiline string fields for compatibility.
-
-## Confidence and fallback handling
-
-- Use field-level confidence values.
-- If `overall` is low, keep local parse as baseline and overlay only high-confidence fields.
-- Add warnings when sections are inferred or possibly incomplete.
-
-## Handling uncertain fields safely
-
-- Never invent specifics (times, temperatures, quantities) unless present.
-- Prefer empty field + warning over hallucinated details.
-- Mark uncertain fields for user review highlighting.
-
----
-
-## 5) User experience
-
-## Review-before-save flow
-
-1. User clicks **Extract draft**.
-2. Show loading state.
-3. Present editable form with extracted fields.
-4. Show small extraction summary:
-   - source (local vs AI)
-   - confidence badge
-   - warnings for uncertain fields
-5. User edits and saves.
-
-## Loading and error UX
-
-- Loading text: “Extracting recipe draft…”
-- On error: preserve pasted text and show retry option.
-- Provide fallback draft from local parse even if AI fails.
-
-## Partial extraction behavior
-
-- Populate known fields first.
-- Leave unknown fields empty with placeholders.
-- Keep save enabled after user review.
-
----
-
-## 6) Security
-
-## Environment variables
-
-- Store API key only in server environment variables (e.g., `.env.local` server-side).
-- Never expose keys in client bundles.
-
-## Server-side API usage
-
-- Route all OpenAI calls through a server endpoint / server action.
-- Client sends raw pasted text to your server; server calls OpenAI.
-
-## Protecting API keys
-
-- No key in browser localStorage.
-- No key in frontend code.
-- Log only redacted request metadata (not full sensitive text unless user consents).
-
----
-
-## 7) Future extensibility
-
-## OCR / image import
-
-- Add optional image upload + OCR pre-step.
-- Feed OCR text into same preprocessing + extraction pipeline.
-
-## Ingredient scaling support
-
-- Later parse structured ingredient entries:
-  - amount
-  - unit
-  - item
-- This enables automatic scaling beyond current multiplier helper.
-
-## Multilingual recipes
-
-- Expand heading dictionaries beyond Hebrew/English.
-- Keep language hint + direction handling field-aware.
-
-## Structured ingredient parsing
-
-- Add secondary parser (local or AI) for line-by-line normalization.
-- Keep original ingredient line for transparency.
-
----
-
-## Practical implementation plan (small steps)
-
-1. Add preprocessing + confidence scoring locally (no API yet).
-2. Add server endpoint for AI extraction behind feature flag.
-3. Add schema validation and fallback merge.
-4. Add cache by normalized text hash.
-5. Add confidence/warnings UI badges in import review.
-
-This stepwise approach keeps risk and cost low while improving extraction quality incrementally.
+- Add server-side caching keyed by normalized cleaned text plus schema version.
+- Add OCR/image import that feeds text into the same preprocessing and AI route.
+- Add more multilingual section-heading hints.
+- Add structured ingredient normalization as a second AI-assisted step after the editable recipe draft.
