@@ -22,9 +22,9 @@ export default function NewRecipePage() {
           ← Back to recipes
         </Link>
         <div className="mb-8 mt-6">
-          <p className="font-semibold text-tomato">New Recipe</p>
+          <p className="font-semibold text-tomato">Add manually</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-stone-950">
-            Add a recipe to your lab
+            Add a recipe by hand
           </h1>
           <p className="mt-3 text-stone-600">
             Fill in the basics now. You can edit the recipe later as you test it.

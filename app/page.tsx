@@ -100,14 +100,22 @@ export default function Home() {
                 Start experimenting
               </p>
               <p className="mt-3 text-2xl font-semibold">
-                Add a new recipe, rate it, and update your notes after each cook.
+                Import a recipe, rate it, and update your notes after each cook.
               </p>
-              <Link
-                href="/recipes/new"
-                className="mt-6 inline-flex rounded-full bg-herb px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-800"
-              >
-                Add Recipe
-              </Link>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/recipes/import"
+                  className="inline-flex items-center justify-center rounded-full bg-herb px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-800"
+                >
+                  Import recipe
+                </Link>
+                <Link
+                  href="/recipes/new"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-bold text-herb ring-1 ring-green-200 transition hover:bg-green-100"
+                >
+                  Add manually
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -123,12 +131,20 @@ export default function Home() {
                 Saved locally in your browser for quick testing.
               </p>
             </div>
-            <Link
-              href="/recipes/new"
-              className="inline-flex items-center justify-center rounded-full bg-herb px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-800"
-            >
-              Add Recipe
-            </Link>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/recipes/import"
+                className="inline-flex items-center justify-center rounded-full bg-herb px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-800"
+              >
+                Import recipe
+              </Link>
+              <Link
+                href="/recipes/new"
+                className="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-bold text-herb ring-1 ring-green-200 transition hover:bg-green-50"
+              >
+                Add manually
+              </Link>
+            </div>
           </div>
 
           <div className="mb-6 grid gap-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-stone-200 md:grid-cols-2 lg:grid-cols-4">
