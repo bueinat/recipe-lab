@@ -13,9 +13,16 @@ import {
 import type { RecipeFormValues } from "@/lib/recipe-types";
 import { getTextDirection } from "@/lib/text-direction";
 
+type AiExtractError =
+  | string
+  | {
+      code?: string;
+      message?: string;
+    };
+
 type AiExtractResponse = {
   extraction?: AiRecipeExtraction;
-  error?: string;
+  error?: AiExtractError;
   model?: string;
   preprocessing?: {
     detectedSourceUrl: string;
@@ -46,9 +53,6 @@ export default function ImportRecipePage() {
 
     setIsAiLoading(true);
     setAiError("");
-    setDraftRecipe(null);
-    setExtractionResult(null);
-    setPreprocessingSummary(undefined);
 
     try {
       const response = await fetch("/api/recipes/ai-extract", {
@@ -60,10 +64,16 @@ export default function ImportRecipePage() {
           pastedText,
         }),
       });
-      const responseBody = (await response.json()) as AiExtractResponse;
+      let responseBody: AiExtractResponse = {};
+
+      try {
+        responseBody = (await response.json()) as AiExtractResponse;
+      } catch {
+        responseBody = {};
+      }
 
       if (!response.ok || !responseBody.extraction) {
-        throw new Error(responseBody.error || "AI extraction failed. Try again later.");
+        throw new Error(getAiErrorMessage(responseBody));
       }
 
       const recipe = createRecipeFromAiExtraction({
@@ -118,18 +128,23 @@ export default function ImportRecipePage() {
         </div>
 
         {!draftRecipe ? (
-          <form onSubmit={handleExtractDraft} className="grid gap-5">
+          <form
+            onSubmit={handleExtractDraft}
+            className="grid gap-5"
+            aria-busy={isAiLoading}
+          >
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-stone-700">
                 Recipe text
               </span>
               <textarea
                 required
+                disabled={isAiLoading}
                 dir={getTextDirection(pastedText)}
                 value={pastedText}
                 onChange={(event) => setPastedText(event.target.value)}
                 rows={12}
-                className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+                className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-500"
                 placeholder="Paste Instagram, Facebook, website, ingredients, notes, or recipe text here."
               />
             </label>
@@ -141,9 +156,10 @@ export default function ImportRecipePage() {
                 </span>
                 <input
                   type="url"
+                  disabled={isAiLoading}
                   value={sourceUrl}
                   onChange={(event) => setSourceUrl(event.target.value)}
-                  className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+                  className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-500"
                   placeholder="https://example.com/recipe"
                 />
               </label>
@@ -154,9 +170,10 @@ export default function ImportRecipePage() {
                 </span>
                 <input
                   type="url"
+                  disabled={isAiLoading}
                   value={imageUrl}
                   onChange={(event) => setImageUrl(event.target.value)}
-                  className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100"
+                  className="rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-herb focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-500"
                   placeholder="https://example.com/photo.jpg"
                 />
               </label>
@@ -165,10 +182,21 @@ export default function ImportRecipePage() {
             <button
               type="submit"
               disabled={isAiLoading}
+              aria-describedby={isAiLoading ? "ai-extract-loading" : undefined}
               className="rounded-2xl bg-herb px-5 py-3 font-bold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-stone-400"
             >
-              {isAiLoading ? "Extracting with AI..." : "Extract with AI"}
+              {isAiLoading ? "Extracting recipe..." : "Extract with AI"}
             </button>
+            {isAiLoading ? (
+              <p
+                id="ai-extract-loading"
+                role="status"
+                aria-live="polite"
+                className="rounded-2xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-900"
+              >
+                AI is reading the recipe and building a draft...
+              </p>
+            ) : null}
             {aiError ? (
               <p role="alert" className="text-sm font-semibold text-red-700">
                 {aiError}
@@ -243,4 +271,18 @@ export default function ImportRecipePage() {
       </section>
     </main>
   );
+}
+
+function getAiErrorMessage(responseBody: AiExtractResponse) {
+  const { error } = responseBody;
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error && typeof error.message === "string") {
+    return error.message;
+  }
+
+  return "AI extraction failed. Try again later.";
 }
