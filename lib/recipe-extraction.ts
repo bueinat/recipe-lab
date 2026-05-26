@@ -1,4 +1,9 @@
 import type { RecipeFormValues } from "./recipe-types";
+import {
+  ingredientSectionsToText,
+  instructionSectionsToText,
+  makeSectionId,
+} from "./recipe-sections";
 
 export type LanguageHint = "he" | "en" | "mixed" | "unknown";
 
@@ -23,6 +28,14 @@ export type AiRecipeExtraction = {
   title: string;
   ingredients: string[];
   instructions: string[];
+  ingredientSections: {
+    title: string;
+    items: string[];
+  }[];
+  instructionSections: {
+    title: string;
+    steps: string[];
+  }[];
   notes: string;
   servings: number | null;
   tags: string[];
@@ -38,6 +51,8 @@ export const AI_RECIPE_EXTRACTION_SCHEMA = {
     "title",
     "ingredients",
     "instructions",
+    "ingredientSections",
+    "instructionSections",
     "notes",
     "servings",
     "tags",
@@ -54,6 +69,36 @@ export const AI_RECIPE_EXTRACTION_SCHEMA = {
     instructions: {
       type: "array",
       items: { type: "string" },
+    },
+    ingredientSections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "items"],
+        properties: {
+          title: { type: "string" },
+          items: {
+            type: "array",
+            items: { type: "string" },
+          },
+        },
+      },
+    },
+    instructionSections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "steps"],
+        properties: {
+          title: { type: "string" },
+          steps: {
+            type: "array",
+            items: { type: "string" },
+          },
+        },
+      },
     },
     notes: { type: "string" },
     servings: {
@@ -119,12 +164,35 @@ export function createRecipeFromAiExtraction({
   imageUrl: string;
   sourceUrl: string;
 }): RecipeFormValues {
+  const ingredientSections = aiExtraction.ingredientSections.map(
+    (section, index) => ({
+      id: makeSectionId(`ingredient-section-${index + 1}`),
+      title: section.title,
+      itemsText: section.items.join("\n").trim(),
+    }),
+  );
+  const instructionSections = aiExtraction.instructionSections.map(
+    (section, index) => ({
+      id: makeSectionId(`instruction-section-${index + 1}`),
+      title: section.title,
+      stepsText: section.steps.join("\n").trim(),
+    }),
+  );
+  const ingredients =
+    ingredientSectionsToText(ingredientSections) ||
+    aiExtraction.ingredients.join("\n").trim();
+  const instructions =
+    instructionSectionsToText(instructionSections) ||
+    aiExtraction.instructions.join("\n").trim();
+
   return {
     title: aiExtraction.title || "Untitled imported recipe",
     imageUrl: imageUrl.trim() || undefined,
     servings: aiExtraction.servings ?? 1,
-    ingredients: aiExtraction.ingredients.join("\n").trim(),
-    instructions: aiExtraction.instructions.join("\n").trim(),
+    ingredients,
+    instructions,
+    ingredientSections,
+    instructionSections,
     notes: aiExtraction.notes,
     tags: uniqueStrings([...aiExtraction.tags, "imported"]),
     sourceUrl: sourceUrl.trim() || detectedSourceUrl,
@@ -141,6 +209,10 @@ export function sanitizeAiRecipeExtraction(value: unknown): AiRecipeExtraction {
   const title = sanitizeText(record.title);
   const ingredients = sanitizeStringArray(record.ingredients);
   const instructions = sanitizeStringArray(record.instructions);
+  const ingredientSections = sanitizeAiIngredientSections(record.ingredientSections);
+  const instructionSections = sanitizeAiInstructionSections(
+    record.instructionSections,
+  );
   const notes = sanitizeText(record.notes);
   const tags = uniqueStrings(sanitizeStringArray(record.tags)).slice(0, 8);
   const warnings = sanitizeStringArray(record.warnings);
@@ -149,11 +221,11 @@ export function sanitizeAiRecipeExtraction(value: unknown): AiRecipeExtraction {
     warnings.push("AI did not find a clear title.");
   }
 
-  if (ingredients.length === 0) {
+  if (ingredients.length === 0 && ingredientSections.length === 0) {
     warnings.push("AI did not find clear ingredients.");
   }
 
-  if (instructions.length === 0) {
+  if (instructions.length === 0 && instructionSections.length === 0) {
     warnings.push("AI did not find clear instructions.");
   }
 
@@ -161,6 +233,8 @@ export function sanitizeAiRecipeExtraction(value: unknown): AiRecipeExtraction {
     title,
     ingredients,
     instructions,
+    ingredientSections,
+    instructionSections,
     notes,
     servings: sanitizeServings(record.servings),
     tags,
@@ -168,6 +242,42 @@ export function sanitizeAiRecipeExtraction(value: unknown): AiRecipeExtraction {
     confidence,
     warnings: uniqueStrings(warnings).slice(0, 10),
   };
+}
+
+function sanitizeAiIngredientSections(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const record = isRecord(item) ? item : {};
+
+      return {
+        title: sanitizeText(record.title) || "Section",
+        items: sanitizeStringArray(record.items),
+      };
+    })
+    .filter((section) => section.items.length > 0)
+    .slice(0, 20);
+}
+
+function sanitizeAiInstructionSections(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const record = isRecord(item) ? item : {};
+
+      return {
+        title: sanitizeText(record.title) || "Section",
+        steps: sanitizeStringArray(record.steps),
+      };
+    })
+    .filter((section) => section.steps.length > 0)
+    .slice(0, 20);
 }
 
 function sanitizeConfidence(value: unknown): ExtractionConfidence {

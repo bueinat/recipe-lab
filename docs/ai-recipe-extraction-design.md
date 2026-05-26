@@ -53,6 +53,8 @@ AI is responsible for extracting:
 - `title`
 - `ingredients`
 - `instructions`
+- `ingredientSections`
+- `instructionSections`
 - `notes`
 - `servings`
 - `tags`
@@ -61,6 +63,8 @@ AI is responsible for extracting:
 - `warnings`
 
 The prompt should stay concise and ask for strict JSON only. The model should prefer empty fields plus warnings over invented quantities, times, temperatures, or steps.
+
+For recipes with named parts, such as dough/filling/sauce or equivalent headings in other languages, AI should return section arrays. For simple recipes, it should return empty section arrays and use the flat `ingredients` and `instructions` fields.
 
 ## Server-side OpenAI route
 

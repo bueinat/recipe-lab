@@ -24,6 +24,34 @@ function DetailBlock({
   );
 }
 
+function SectionedDetailBlock({
+  title,
+  sections,
+}: {
+  title: string;
+  sections: { id: string; title: string; text: string }[];
+}) {
+  return (
+    <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
+      <h2 className="text-lg font-bold text-stone-950">{title}</h2>
+      <div className="mt-4 grid gap-4">
+        {sections.map((section) => (
+          <article
+            key={section.id}
+            dir={getTextDirection(`${section.title}\n${section.text}`)}
+            className="rounded-2xl bg-stone-50 p-4"
+          >
+            <h3 className="font-bold text-stone-900">{section.title}</h3>
+            <div className="mt-2 whitespace-pre-line leading-7 text-stone-700">
+              {section.text}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function formatRating(rating: number) {
   return rating > 0 ? `${"★".repeat(rating)}${"☆".repeat(5 - rating)}` : "Not rated";
 }
@@ -54,6 +82,8 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
 
   const cookingLogs = recipe?.cookingLogs ?? [];
   const versions = recipe?.versions ?? [];
+  const ingredientSections = recipe?.ingredientSections ?? [];
+  const instructionSections = recipe?.instructionSections ?? [];
   const originalServings = recipe?.servings && recipe.servings > 0 ? recipe.servings : 1;
   const desiredServingCount = Number(desiredServings);
   const hasValidDesiredServings =
@@ -199,12 +229,34 @@ export function RecipeDetails({ recipeId }: { recipeId: string }) {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <DetailBlock title="Ingredients" dir={getTextDirection(recipe.ingredients)}>
-            {recipe.ingredients}
-          </DetailBlock>
-          <DetailBlock title="Instructions" dir={getTextDirection(recipe.instructions)}>
-            {recipe.instructions}
-          </DetailBlock>
+          {ingredientSections.length > 0 ? (
+            <SectionedDetailBlock
+              title="Ingredients"
+              sections={ingredientSections.map((section) => ({
+                id: section.id,
+                title: section.title,
+                text: section.itemsText,
+              }))}
+            />
+          ) : (
+            <DetailBlock title="Ingredients" dir={getTextDirection(recipe.ingredients)}>
+              {recipe.ingredients}
+            </DetailBlock>
+          )}
+          {instructionSections.length > 0 ? (
+            <SectionedDetailBlock
+              title="Instructions"
+              sections={instructionSections.map((section) => ({
+                id: section.id,
+                title: section.title,
+                text: section.stepsText,
+              }))}
+            />
+          ) : (
+            <DetailBlock title="Instructions" dir={getTextDirection(recipe.instructions)}>
+              {recipe.instructions}
+            </DetailBlock>
+          )}
         </div>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200">

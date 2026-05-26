@@ -10,6 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import { sampleRecipes } from "@/lib/sample-recipes";
+import {
+  cleanIngredientSections,
+  cleanInstructionSections,
+} from "@/lib/recipe-sections";
 import type {
   Recipe,
   RecipeFormValues,
@@ -51,6 +55,8 @@ function makeRecipeVersionId() {
 function normalizeRecipe(recipe: Recipe): Recipe {
   return {
     ...recipe,
+    ingredientSections: cleanIngredientSections(recipe.ingredientSections ?? []),
+    instructionSections: cleanInstructionSections(recipe.instructionSections ?? []),
     cookingLogs: recipe.cookingLogs ?? [],
     versions: recipe.versions ?? [],
   };
@@ -123,6 +129,8 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
     function addRecipe(recipe: RecipeFormValues) {
       const newRecipe = {
         ...recipe,
+        ingredientSections: cleanIngredientSections(recipe.ingredientSections ?? []),
+        instructionSections: cleanInstructionSections(recipe.instructionSections ?? []),
         cookingLogs: recipe.cookingLogs ?? [],
         versions: recipe.versions ?? [],
         id: makeRecipeId(recipe.title),
@@ -138,6 +146,12 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
           currentRecipe.id === id
             ? {
                 ...recipe,
+                ingredientSections: cleanIngredientSections(
+                  recipe.ingredientSections ?? [],
+                ),
+                instructionSections: cleanInstructionSections(
+                  recipe.instructionSections ?? [],
+                ),
                 cookingLogs: currentRecipe.cookingLogs ?? [],
                 versions: currentRecipe.versions ?? [],
                 id,
