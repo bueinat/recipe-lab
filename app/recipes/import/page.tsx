@@ -107,7 +107,7 @@ export default function ImportRecipePage() {
           ← Back to recipes
         </Link>
         <div className="mb-8 mt-6">
-          <p className="font-semibold text-tomato">Import from Text</p>
+          <p className="font-semibold text-tomato">Import recipe</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-stone-950">
             Paste, review, then save
           </h1>
