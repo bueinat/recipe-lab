@@ -62,7 +62,7 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "Extract a recipe from cleaned user text. Return strict JSON only. Use empty fields and warnings instead of inventing missing details.",
+              "Extract a recipe from cleaned user text. Return strict JSON only. Use empty fields and warnings instead of inventing missing details. If the recipe has named parts like Dough, Filling, Sauce, קלתית, מילוי, or רויאל, return ingredientSections and instructionSections. For simple recipes, return empty section arrays and use the flat ingredients and instructions arrays.",
           },
           {
             role: "user",
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
             ].join("\n"),
           },
         ],
-        max_output_tokens: 1200,
+        max_output_tokens: 1600,
         text: {
           format: {
             type: "json_schema",

@@ -49,6 +49,14 @@ export default function Home() {
           recipe.title,
           recipe.ingredients,
           recipe.instructions,
+          ...(recipe.ingredientSections ?? []).flatMap((section) => [
+            section.title,
+            section.itemsText,
+          ]),
+          ...(recipe.instructionSections ?? []).flatMap((section) => [
+            section.title,
+            section.stepsText,
+          ]),
           recipe.notes,
           recipe.tags.join(" "),
           recipe.sourceUrl,

@@ -17,6 +17,18 @@ export type RecipeVersion = {
 
 export type RecipeVersionInput = Omit<RecipeVersion, "id" | "createdAt">;
 
+export type IngredientSection = {
+  id: string;
+  title: string;
+  itemsText: string;
+};
+
+export type InstructionSection = {
+  id: string;
+  title: string;
+  stepsText: string;
+};
+
 export type Recipe = {
   id: string;
   title: string;
@@ -24,6 +36,8 @@ export type Recipe = {
   servings: number;
   ingredients: string;
   instructions: string;
+  ingredientSections?: IngredientSection[];
+  instructionSections?: InstructionSection[];
   notes: string;
   tags: string[];
   sourceUrl: string;
