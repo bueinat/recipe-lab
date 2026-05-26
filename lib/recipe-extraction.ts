@@ -1,7 +1,5 @@
 import type { RecipeFormValues } from "./recipe-types";
 
-export const LOCAL_AI_CONFIDENCE_THRESHOLD = 0.65;
-
 export type LanguageHint = "he" | "en" | "mixed" | "unknown";
 
 export type ExtractionConfidence = {
@@ -12,11 +10,9 @@ export type ExtractionConfidence = {
   notes: number;
 };
 
-export type RecipeExtractionSource = "local" | "ai";
-
 export type RecipeExtractionResult = {
   recipe: RecipeFormValues;
-  source: RecipeExtractionSource;
+  source: "ai";
   confidence: ExtractionConfidence;
   warnings: string[];
   languageHint: LanguageHint;
@@ -90,10 +86,6 @@ export const AI_RECIPE_EXTRACTION_SCHEMA = {
   },
 } as const;
 
-export function clampScore(value: number) {
-  return Math.max(0, Math.min(1, Number(value.toFixed(2))));
-}
-
 export function getLanguageHint(text: string): LanguageHint {
   const hebrewCharacters = text.match(/[\u0590-\u05ff]/g)?.length ?? 0;
   const latinCharacters = text.match(/[A-Za-z]/g)?.length ?? 0;
@@ -116,51 +108,30 @@ export function getLanguageHint(text: string): LanguageHint {
   return hebrewCharacters > latinCharacters ? "he" : "en";
 }
 
-export function hasImportantMissingFields(recipe: RecipeFormValues) {
-  return (
-    !recipe.title.trim() ||
-    recipe.title === "Untitled imported recipe" ||
-    !recipe.ingredients.trim() ||
-    !recipe.instructions.trim()
-  );
-}
-
-export function shouldOfferAiExtraction(result: RecipeExtractionResult) {
-  if (result.source !== "local") {
-    return false;
-  }
-
-  return (
-    result.confidence.overall < LOCAL_AI_CONFIDENCE_THRESHOLD ||
-    hasImportantMissingFields(result.recipe)
-  );
-}
-
-export function mergeAiExtractionWithLocal({
+export function createRecipeFromAiExtraction({
   aiExtraction,
+  detectedSourceUrl,
   imageUrl,
-  localRecipe,
   sourceUrl,
 }: {
   aiExtraction: AiRecipeExtraction;
+  detectedSourceUrl: string;
   imageUrl: string;
-  localRecipe: RecipeFormValues;
   sourceUrl: string;
 }): RecipeFormValues {
-  const ingredients = aiExtraction.ingredients.join("\n").trim();
-  const instructions = aiExtraction.instructions.join("\n").trim();
-  const tags = uniqueStrings([...localRecipe.tags, ...aiExtraction.tags, "imported"]);
-
   return {
-    ...localRecipe,
-    title: aiExtraction.title || localRecipe.title,
-    imageUrl: imageUrl.trim() || localRecipe.imageUrl,
-    servings: aiExtraction.servings ?? localRecipe.servings,
-    ingredients: ingredients || localRecipe.ingredients,
-    instructions: instructions || localRecipe.instructions,
-    notes: aiExtraction.notes || localRecipe.notes,
-    tags,
-    sourceUrl: sourceUrl.trim() || localRecipe.sourceUrl,
+    title: aiExtraction.title || "Untitled imported recipe",
+    imageUrl: imageUrl.trim() || undefined,
+    servings: aiExtraction.servings ?? 1,
+    ingredients: aiExtraction.ingredients.join("\n").trim(),
+    instructions: aiExtraction.instructions.join("\n").trim(),
+    notes: aiExtraction.notes,
+    tags: uniqueStrings([...aiExtraction.tags, "imported"]),
+    sourceUrl: sourceUrl.trim() || detectedSourceUrl,
+    status: "Idea",
+    rating: 0,
+    cookingLogs: [],
+    versions: [],
   };
 }
 
@@ -201,7 +172,7 @@ export function sanitizeAiRecipeExtraction(value: unknown): AiRecipeExtraction {
 
 function sanitizeConfidence(value: unknown): ExtractionConfidence {
   if (typeof value === "number") {
-    const score = clampScore(value);
+    const score = sanitizeScore(value);
 
     return {
       overall: score,
@@ -224,7 +195,9 @@ function sanitizeConfidence(value: unknown): ExtractionConfidence {
 }
 
 function sanitizeScore(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? clampScore(value) : 0;
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.min(1, Number(value.toFixed(2))))
+    : 0;
 }
 
 function sanitizeLanguageHint(value: unknown): LanguageHint {
